@@ -109,7 +109,7 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
         rule_use(current);
     };
 
-    top = [&](CharT c) {
+    top = [&](CharT c) -> Action {
         if (c == ')') {
             if (!level)
                 throw Error(src, "Unexpected ')'");
@@ -131,7 +131,7 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
         return Skip;
     };
 
-    in_comment = [&](CharT c) {
+    in_comment = [&](CharT c) -> Action {
         if (c != '\n') {
             data += c;
         } else {
@@ -141,7 +141,7 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
         return Skip;
     };
 
-    auto in_hex = [&](CharT c) {
+    auto in_hex = [&](CharT c) -> Action {
         int n = char2hex(c);
         if (n < 0)
             goto append;
@@ -156,7 +156,7 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
         return Stay;
     };
 
-    append_escaped_hex = [&](CharT) {
+    append_escaped_hex = [&](CharT) -> Action {
         if (hex_byte < 0)
             throw Error(src, "Escaped hex is empty");
 
@@ -165,13 +165,13 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
         return Stay;
     };
 
-    auto process_hex = [&](parser_t const &after) {
+    auto process_hex = [&](parser_t const &after) -> Action {
         hex_byte = -1;
         rule_push(after, in_hex);
         return Skip;
     };
 
-    append_escaped = [&](CharT c) {
+    append_escaped = [&](CharT c) -> Action {
         static const std::unordered_map<char, char>
         assoc{{'n', '\n'}, {'t', '\t'}, {'r', '\r'}, {'a', '\a'},
               {'b', '\b'}, {'v', '\v'}};
@@ -189,12 +189,12 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
         return Skip;
     };
 
-    auto process_escaped = [&]() {
+    auto process_escaped = [&]() -> Action {
         rule_push(rule, append_escaped);
         return Skip;
     };
 
-    in_atom = [&](CharT c) {
+    in_atom = [&](CharT c) -> Action {
         static const std::string bound("()");
         if (bound.find(c) != std::string::npos || isspace(c)) {
             builder.on_atom(std::move(data));
@@ -208,7 +208,7 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
         return Skip;
     };
 
-    in_string = [&](CharT c) {
+    in_string = [&](CharT c) -> Action {
         if (c == '"') {
             builder.on_string(std::move(data));
             rule_use(top);
