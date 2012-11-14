@@ -385,15 +385,14 @@ expr_ptr ObjectExpr::do_eval(env_ptr, expr_ptr self)
 {
     return self;
 }
-//TODO
-#include <iostream>
+
 class ListAccessor
 {
 public:
 
     typedef std::function<bool (expr_ptr)> consumer_type;
 
-    ListAccessor(expr_list_type &params)
+    ListAccessor(expr_list_type const& params)
         : cur(params.begin()),
           end(params.end())
     {}
@@ -413,11 +412,6 @@ public:
         return (cur != end) ? fn(*cur++) : false;
     }
 
-    void rest(consumer_type fn)
-    {
-        while (optional(fn)) {}
-    }
-
 private:
 
     expr_list_type::const_iterator cur;
@@ -427,6 +421,19 @@ private:
 void rest(ListAccessor &src, ListAccessor::consumer_type fn)
 {
     while (src.optional(fn)) {}
+}
+
+template <typename T, typename FnT>
+void rest_casted(ListAccessor &src, FnT fn)
+{
+    rest(src,
+         [&fn](expr_ptr p) {
+             auto res = std::dynamic_pointer_cast<T>(p);
+             if (!res)
+                 throw cor::Error("Can't be casted");
+             fn(res);
+             return !!res;
+         });
 }
 
 template <typename ContainerT, typename ConvertT>
@@ -445,7 +452,7 @@ void push_rest_casted(ListAccessor &src, T &dst) {
     auto fn = [](expr_ptr from) {
         auto res = std::dynamic_pointer_cast<cast_type>(from);
         if (!res)
-            throw cor::Error("Not a property");
+            throw cor::Error("Can't be casted");
         return res;
     };
     push_rest(src, dst, fn);
