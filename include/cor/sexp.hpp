@@ -35,6 +35,7 @@
 #include <unordered_map>
 #include <stack>
 #include <deque>
+#include <sstream>
 
 namespace cor {
 namespace sexp {
