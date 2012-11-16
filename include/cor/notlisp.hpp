@@ -43,6 +43,7 @@ namespace notlisp
 class Expr;
 typedef std::shared_ptr<Expr> expr_ptr;
 typedef std::list<expr_ptr> expr_list_type;
+
 class Env;
 typedef std::shared_ptr<Env> env_ptr;
 typedef std::function<expr_ptr (env_ptr, expr_list_type&)> lambda_type;
@@ -142,10 +143,7 @@ std::basic_ostream<CharT> & operator <<
 }
 
 
-expr_ptr eval(env_ptr env, expr_ptr src)
-{
-    return src->do_eval(env, src);
-}
+expr_ptr eval(env_ptr env, expr_ptr src);
 
 static inline expr_list_type eval(env_ptr env, expr_list_type const &src)
 {
@@ -172,20 +170,9 @@ expr_ptr mk_basic_expr(std::string const &s)
     return expr_ptr(new BasicExpr<T>(s));
 }
 
-expr_ptr mk_string(std::string const &s)
-{
-    return mk_basic_expr<Expr::String>(s);
-}
-
-expr_ptr mk_keyword(std::string const &s)
-{
-    return mk_basic_expr<Expr::String>(s);
-}
-
-expr_ptr mk_nil()
-{
-    return mk_basic_expr<Expr::Nil>("");
-}
+expr_ptr mk_string(std::string const &s);
+expr_ptr mk_keyword(std::string const &s);
+expr_ptr mk_nil();
 
 template <Expr::Type T>
 expr_ptr BasicExpr<T>::do_eval(env_ptr, expr_ptr self)
@@ -208,11 +195,6 @@ expr_ptr mk_value(T v)
     return expr_ptr(new PodExpr(v));
 }
 
-expr_ptr PodExpr::do_eval(env_ptr, expr_ptr self)
-{
-    return self;
-}
-
 class SymbolExpr : public Expr
 {
 public:
@@ -221,15 +203,7 @@ protected:
     virtual expr_ptr do_eval(env_ptr, expr_ptr);
 };
 
-expr_ptr mk_symbol(std::string const &s)
-{
-    return expr_ptr(new SymbolExpr(s));
-}
-
-expr_ptr SymbolExpr::do_eval(env_ptr env, expr_ptr)
-{
-    return env->dict[value()];
-}
+expr_ptr mk_symbol(std::string const &s);
 
 class FunctionExpr : public Expr
 {
@@ -257,61 +231,21 @@ private:
     lambda_type fn;
 };
 
-expr_ptr mk_lambda(std::string const &name, lambda_type const &fn)
-{
-    return expr_ptr(new LambdaExpr(name, fn));
-}
+expr_ptr mk_lambda(std::string const &name, lambda_type const &fn);
 
-expr_ptr LambdaExpr::do_eval(env_ptr, expr_ptr self)
-{
-    return self;
-}
+void to_string(expr_ptr expr, std::string &dst);
 
-void to_string(expr_ptr expr, std::string &dst)
-{
-    if (!expr)
-        throw cor::Error("to_string: Null");
-    if (expr->type() != Expr::String)
-        throw cor::Error("%s is not string", expr->value().c_str());
-    dst = expr->value();
-}
-
-Env::item_type mk_record(std::string const &name, lambda_type const &fn)
+static inline Env::item_type mk_record(std::string const &name, lambda_type const &fn)
 {
     return std::make_pair(name, mk_lambda(name, fn));
 }
 
-Env::item_type mk_const(std::string const &name, std::string const &val)
+static inline Env::item_type mk_const(std::string const &name, std::string const &val)
 {
     return std::make_pair(name, mk_string(val));
 }
 
-static expr_ptr default_atom_convert(std::string &&s)
-{
-    expr_ptr res(mk_nil());
-    if (s.size() && s[0] == ':')
-        res = mk_keyword(s.substr(1));
-    else {
-        double f;
-        long i;
-        auto convert = [&](char const *cstr, size_t len) {
-            char * endptr = nullptr;
-            char const* end = cstr + len;
-
-            i = std::strtol(cstr, &endptr, 10);
-            if (endptr == end)
-                return mk_value(i);
-
-            f = std::strtod(cstr, &endptr);
-            if (endptr == end)
-                return mk_value(f);
-
-            return mk_symbol(s);
-        };
-        res = convert(s.c_str(), s.size());
-    }
-    return res;
-}
+expr_ptr default_atom_convert(std::string &&s);
 
 class Interpreter
 {
@@ -381,11 +315,6 @@ protected:
     virtual expr_ptr do_eval(env_ptr, expr_ptr);
 };
 
-expr_ptr ObjectExpr::do_eval(env_ptr, expr_ptr self)
-{
-    return self;
-}
-
 class ListAccessor
 {
 public:
@@ -418,7 +347,7 @@ private:
     expr_list_type::const_iterator end;
 };
 
-void rest(ListAccessor &src, ListAccessor::consumer_type fn)
+static void rest(ListAccessor &src, ListAccessor::consumer_type fn)
 {
     while (src.optional(fn)) {}
 }
