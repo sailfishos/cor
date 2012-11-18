@@ -77,6 +77,7 @@ public:
     };
 
     Expr(std::string const &v, Type t) : type_(t), s_(v) {}
+    Expr(int v) : type_(Integer), i_(v) {}
     Expr(long v) : type_(Integer), i_(v) {}
     Expr(double v) : type_(Real), r_(v) {}
 
@@ -240,9 +241,17 @@ static inline Env::item_type mk_record(std::string const &name, lambda_type cons
     return std::make_pair(name, mk_lambda(name, fn));
 }
 
-static inline Env::item_type mk_const(std::string const &name, std::string const &val)
+static inline Env::item_type mk_const
+(std::string const &name, std::string const &val)
 {
     return std::make_pair(name, mk_string(val));
+}
+
+template <typename T>
+static inline Env::item_type mk_const
+(std::string const &name, T val)
+{
+    return std::make_pair(name, mk_value(val));
 }
 
 expr_ptr default_atom_convert(std::string &&s);
@@ -379,10 +388,8 @@ void rest(ListAccessor &src, ArgFnT arg, KeyFnT kwd_ard)
 {
     expr_ptr k, v;
     while (src.optional(v)) {
-        if (!v)
-            arg(v);
         if (!k) {
-            if (v->type() == Expr::Keyword)
+            if (v && v->type() == Expr::Keyword)
                 k = v;
             else
                 arg(v);
