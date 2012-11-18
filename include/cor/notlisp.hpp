@@ -319,8 +319,6 @@ class ListAccessor
 {
 public:
 
-    typedef std::function<bool (expr_ptr)> consumer_type;
-
     ListAccessor(expr_list_type const& params)
         : cur(params.begin()),
           end(params.end())
@@ -336,7 +334,8 @@ public:
         return *this;
     }
 
-    bool optional(consumer_type fn)
+    template <typename ConsumerT>
+    bool optional(ConsumerT fn)
     {
         return (cur != end) ? fn(*cur++) : false;
     }
@@ -347,7 +346,8 @@ private:
     expr_list_type::const_iterator end;
 };
 
-static void rest(ListAccessor &src, ListAccessor::consumer_type fn)
+template <typename ConsumerT>
+static void rest(ListAccessor &src, ConsumerT fn)
 {
     while (src.optional(fn)) {}
 }
