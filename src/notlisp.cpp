@@ -12,7 +12,7 @@ expr_ptr mk_string(std::string const &s)
 
 expr_ptr mk_keyword(std::string const &s)
 {
-    return mk_basic_expr<Expr::String>(s);
+    return mk_basic_expr<Expr::Keyword>(s);
 }
 
 expr_ptr mk_nil()
