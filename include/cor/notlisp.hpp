@@ -340,6 +340,15 @@ public:
         return (cur != end) ? fn(*cur++) : false;
     }
 
+    bool optional(expr_ptr &dst)
+    {
+        if (cur == end)
+            return false;
+
+        dst = *cur++;
+        return true;
+    }
+
 private:
 
     expr_list_type::const_iterator cur;
@@ -363,6 +372,27 @@ void rest_casted(ListAccessor &src, FnT fn)
              fn(res);
              return !!res;
          });
+}
+
+template <typename ArgFnT, typename KeyFnT>
+void rest(ListAccessor &src, ArgFnT arg, KeyFnT kwd_ard)
+{
+    expr_ptr k, v;
+    while (src.optional(v)) {
+        if (!v)
+            arg(v);
+        if (!k) {
+            if (v->type() == Expr::Keyword)
+                k = v;
+            else
+                arg(v);
+        } else {
+            kwd_ard(k, v);
+            k = nullptr;
+        }
+    }
+    if (k)
+        throw cor::Error("Orphaned keyword");
 }
 
 template <typename ContainerT, typename ConvertT>
