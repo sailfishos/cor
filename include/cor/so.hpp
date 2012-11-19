@@ -63,9 +63,17 @@ public:
     }
 
     template <typename T>
-    void sym(T *p, std::string const &name)
+    void sym(T **p, std::string const &name) const
     {
-        p = h ? reinterpret_cast<T*>(dlsym(h, name.c_str())) : 0;
+        *p = sym<T*>(name);
+    }
+
+    template <typename T>
+    T sym(std::string const &name) const
+    {
+        return is_loaded()
+            ? reinterpret_cast<T>(dlsym(h, name.c_str()))
+            : nullptr;
     }
 
 private:
