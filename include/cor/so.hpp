@@ -22,11 +22,12 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
+ *
  * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  */
 
 #include <dlfcn.h>
+#include <string>
 
 namespace cor
 {
@@ -79,6 +80,7 @@ public:
 private:
 
     SharedLib(SharedLib &);
+
 
     void *h;
 };
