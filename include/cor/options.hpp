@@ -3,8 +3,6 @@
 /*
  * Command line options parser
  *
- * Mostly for usage as configuration and communication (e.g. rpc)
- *
  * Copyright (C) 2012 Jolla Ltd.
  * Contact: Denis Zalevskiy <denis.zalevskiy@jollamobile.com>
  *
@@ -44,6 +42,11 @@ public:
         typedef std::unordered_map<std::string, char const*> map_type;
         typedef typename map_type::value_type item_type;
 
+        /**
+         * @short_opts list of pairs (short_item_char, item_name)
+         * @long_opts list of pairs (long_item_string, item_name)
+         * @opt_with_params list of item names has params
+         */
         OptParse(std::initializer_list<item_type> short_opts,
                     std::initializer_list<item_type> long_opts,
                     std::initializer_list<std::string> opt_with_params)
@@ -52,6 +55,11 @@ public:
                   opt_with_params_(opt_with_params)
         {}
 
+        /** main method to perform options parsing
+         *
+         * @opts map to gather (item_name, value) association
+         * @params container to gather parameters
+         */
         int parse(int argc, char *argv[],
                   map_type &opts,
                   std::vector<char const*> &params)
