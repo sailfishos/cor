@@ -27,7 +27,6 @@
 #include <unordered_map>
 #include <functional>
 #include <algorithm>
-#include <string>
 #include <vector>
 #include <set>
 #include <stdexcept>
@@ -36,10 +35,11 @@
 namespace cor
 {
 
+template <class StringT>
 class OptParse
 {
 public:
-        typedef std::unordered_map<std::string, char const*> map_type;
+        typedef std::unordered_map<StringT, char const*> map_type;
         typedef typename map_type::value_type item_type;
 
         /**
@@ -69,7 +69,7 @@ public:
                         opt_param
                 };
                 stages stage = option;
-                std::string name;
+                StringT name;
 
                 auto parse_short = [&](char const *s, size_t len) {
                         auto p = short_opts_.find(&s[1]);
