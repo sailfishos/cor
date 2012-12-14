@@ -39,6 +39,8 @@ template <class StringT>
 class OptParse
 {
 public:
+        typedef std::unordered_map<char, char const*> short_opts_type;
+        typedef typename short_opts_type::value_type short_item_type;
         typedef std::unordered_map<StringT, char const*> map_type;
         typedef typename map_type::value_type item_type;
 
@@ -47,7 +49,7 @@ public:
          * @long_opts list of pairs (long_item_string, item_name)
          * @opt_with_params list of item names has params
          */
-        OptParse(std::initializer_list<item_type> short_opts,
+        OptParse(std::initializer_list<short_item_type> short_opts,
                     std::initializer_list<item_type> long_opts,
                     std::initializer_list<std::string> opt_with_params)
                 : short_opts_(short_opts),
@@ -72,7 +74,7 @@ public:
                 StringT name;
 
                 auto parse_short = [&](char const *s, size_t len) {
-                        auto p = short_opts_.find(&s[1]);
+                        auto p = short_opts_.find(s[1]);
                         if (p == short_opts_.end()) {
                                 params.push_back(s);
                                 return;
@@ -81,9 +83,12 @@ public:
                         name = p->second;
                         auto p_has = opt_with_params_.find(name);
                         if (p_has == opt_with_params_.end()) {
-                                opts[name] = 0;
-                        } else
+                                opts[name] = nullptr;
+                        } else if (len > 1) {
+                                opts[name] = &s[2];
+                        } else {
                                 stage = opt_param;
+                        }
                 };
 
                 auto parse_long = [&](char const *s, size_t len) {
@@ -133,7 +138,7 @@ public:
         }
 
 private:
-        map_type short_opts_;
+        short_opts_type short_opts_;
         map_type long_opts_;
         std::set<std::string> opt_with_params_;
 };
