@@ -84,7 +84,7 @@ public:
                         auto p_has = opt_with_params_.find(name);
                         if (p_has == opt_with_params_.end()) {
                                 opts[name] = nullptr;
-                        } else if (len > 1) {
+                        } else if (len > 2) {
                                 opts[name] = &s[2];
                         } else {
                                 stage = opt_param;
