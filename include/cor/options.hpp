@@ -24,7 +24,7 @@
  * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  */
 
-#include <unordered_map>
+#include <map>
 #include <functional>
 #include <algorithm>
 #include <vector>
@@ -39,9 +39,9 @@ template <class StringT>
 class OptParse
 {
 public:
-        typedef std::unordered_map<char, char const*> short_opts_type;
+        typedef std::map<char, char const*> short_opts_type;
         typedef typename short_opts_type::value_type short_item_type;
-        typedef std::unordered_map<StringT, char const*> map_type;
+        typedef std::map<StringT, char const*> map_type;
         typedef typename map_type::value_type item_type;
 
         /**
