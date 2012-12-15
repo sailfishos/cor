@@ -51,7 +51,7 @@ public:
          */
         OptParse(std::initializer_list<short_item_type> short_opts,
                     std::initializer_list<item_type> long_opts,
-                    std::initializer_list<std::string> opt_with_params)
+                    std::initializer_list<StringT> opt_with_params)
                 : short_opts_(short_opts),
                   long_opts_(long_opts),
                   opt_with_params_(opt_with_params)
@@ -140,7 +140,7 @@ public:
 private:
         short_opts_type short_opts_;
         map_type long_opts_;
-        std::set<std::string> opt_with_params_;
+        std::set<StringT> opt_with_params_;
 };
 
 
