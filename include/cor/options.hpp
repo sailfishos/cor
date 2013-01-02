@@ -91,10 +91,12 @@ public:
             }
         };
 
-        auto parse_long = [&](char const *s, size_t len) {
+        auto parse_long = [&](char const *s, size_t) {
             auto p = long_opts_.find(&s[1]);
-            if (p == long_opts_.end())
+            if (p == long_opts_.end()) {
                 params.push_back(s);
+                return;
+            }
             name = p->second;
             auto p_has = opt_with_params_.find(name);
             if (p_has == opt_with_params_.end())
