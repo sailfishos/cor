@@ -61,7 +61,7 @@ public:
     { }
 
     void show_help(std::ostream &out, char const *program_name,
-                   StringT const &usage_str = "")
+                   StringT const &usage_str = "") const
     {
         if (usage_str.size()) {
             out << "Usage: " << program_name << usage_str;
@@ -99,7 +99,7 @@ public:
      */
     int parse(int argc, char *argv[],
               map_type &opts,
-              std::vector<char const*> &params)
+              std::vector<char const*> &params) const
     {
         enum stages {
             option,
