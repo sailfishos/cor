@@ -47,15 +47,50 @@ public:
     /**
      * @short_opts list of pairs (short_item_char, item_name)
      * @long_opts list of pairs (long_item_string, item_name)
-     * @opt_with_params list of item names has params
+     * @opt_with_params set of item names has params
+     * @leave_in_params set of item names should be also left in params
      */
     OptParse(std::initializer_list<short_item_type> short_opts,
              std::initializer_list<item_type> long_opts,
-             std::initializer_list<StringT> opt_with_params)
+             std::initializer_list<StringT> opt_with_params,
+             std::initializer_list<StringT> leave_in_params = {})
         : short_opts_(short_opts),
           long_opts_(long_opts),
-          opt_with_params_(opt_with_params)
-    {}
+          opt_with_params_(opt_with_params),
+          leave_in_params_(leave_in_params)
+    { }
+
+    void show_help(std::ostream &out, char const *program_name,
+                   StringT const &usage_str = "")
+    {
+        if (usage_str.size()) {
+            out << "Usage: " << program_name << usage_str;
+        } else {
+            out << "Usage: " << program_name << " [options]\n"
+                << "\twhere [options] are:\n";
+        }
+        std::map<StringT, std::pair<char, StringT> > grouped;
+        for (auto p : short_opts_)
+            grouped[p.second].first = p.first;
+        for (auto p : long_opts_)
+            grouped[p.second].second = p.first;
+        for (auto p : grouped) {
+            auto &sl = p.second;
+            out << "\t";
+            if (sl.first) {
+                out << '-' << sl.first;
+                if (opt_with_params_.count(p.first))
+                    out << " <" << p.first << '>';
+            }
+            out << "\t";
+            if (sl.second.size()) {
+                out << "--" << sl.second;
+                if (opt_with_params_.count(p.first))
+                    out << " <" << p.first << '>';
+            }
+            out << "\n";
+        }
+    }
 
     /** main method to perform options parsing
      *
@@ -72,6 +107,7 @@ public:
         };
         stages stage = option;
         StringT name;
+        bool is_leave_param = false;
 
         auto parse_short = [&](char const *s, size_t len) {
             auto p = short_opts_.find(s[1]);
@@ -81,23 +117,34 @@ public:
             }
 
             name = p->second;
-            auto p_has = opt_with_params_.find(name);
-            if (p_has == opt_with_params_.end()) {
+
+            is_leave_param = (leave_in_params_.count(name) != 0);
+            if (is_leave_param)
+                params.push_back(s);
+
+            if (!opt_with_params_.count(name)) {
                 opts[name] = nullptr;
             } else if (len > 2) {
                 opts[name] = &s[2];
+                if (is_leave_param)
+                    params.push_back(&s[2]);
             } else {
                 stage = opt_param;
             }
         };
 
         auto parse_long = [&](char const *s, size_t) {
-            auto p = long_opts_.find(&s[1]);
+            auto p = long_opts_.find(&s[2]);
             if (p == long_opts_.end()) {
                 params.push_back(s);
                 return;
             }
             name = p->second;
+
+            is_leave_param = (leave_in_params_.count(name) != 0);
+            if (is_leave_param)
+                params.push_back(s);
+
             auto p_has = opt_with_params_.find(name);
             if (p_has == opt_with_params_.end())
                 opts[name] = 0;
@@ -109,6 +156,8 @@ public:
             if (len >= 1 && s[0] == '-')
                 throw std::logic_error(s);
             opts[name] = s;
+            if (is_leave_param)
+                params.push_back(s);
             stage = option;
         };
 
@@ -143,6 +192,7 @@ private:
     short_opts_type short_opts_;
     map_type long_opts_;
     std::set<StringT> opt_with_params_;
+    std::set<StringT> leave_in_params_;
 };
 
 } // cor
