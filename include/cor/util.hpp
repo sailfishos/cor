@@ -3,6 +3,8 @@
 
 #include <cor/error.hpp>
 
+#include <unistd.h>
+
 #include <vector>
 #include <cstdio>
 #include <cstdarg>
@@ -78,6 +80,37 @@ public:
         this->c.clear();
     }
 };
+
+class Fd
+{
+public:
+    Fd(int v) : fd(v) {}
+
+    ~Fd() { close(); }
+
+    Fd(Fd &&from)
+    {
+        fd = from.fd;
+        from.fd = -1;
+    }
+
+    bool is_valid() const { return (fd >= 0); }
+
+    void close()
+    {
+        if (is_valid()) {
+            ::close(fd);
+            fd = -1;
+        }
+    }
+
+    int fd;
+
+private:
+    Fd(Fd &);
+    Fd & operator = (Fd &);
+};
+
 
 } // namespace cor
 
