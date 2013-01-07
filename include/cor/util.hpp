@@ -111,6 +111,49 @@ private:
     Fd & operator = (Fd &);
 };
 
+template <typename T>
+class Handle
+{
+public:
+    Handle(T v, std::function<void (T)> close)
+        : v_(v), close_(close)
+    {}
+
+    ~Handle()
+    {
+        close_(v_);
+    }
+
+    Handle(Handle &&from)
+    {
+        v_ = from.v_;
+        close_ = from.close_;
+        from.close_ = [](T) {};
+    }
+
+    T value() const
+    {
+        return v_;
+    }
+
+    T& ref()
+    {
+        return v_;
+    }
+
+    T const& cref() const
+    {
+        return v_;
+    }
+
+private:
+    Handle(Handle &);
+    Handle & operator = (Handle &);
+
+    T v_;
+    std::function<void (T)> close_;
+};
+
 
 } // namespace cor
 
