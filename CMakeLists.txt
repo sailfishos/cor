@@ -1,5 +1,5 @@
 PROJECT(cor)
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8)
 
 find_package(PkgConfig)
 
@@ -17,4 +17,10 @@ INCLUDE_DIRECTORIES(
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+INCLUDE_DIRECTORIES(
+  ${CMAKE_CURRENT_SOURCE_DIR}/tut/include
+)
+
 add_subdirectory(src)
+enable_testing()
+add_subdirectory(tests)

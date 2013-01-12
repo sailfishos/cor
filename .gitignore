@@ -8,3 +8,6 @@ statefs
 cscope*
 *~
 *.a
+CTestTestfile.cmake
+/Testing/
+self_test.xml
