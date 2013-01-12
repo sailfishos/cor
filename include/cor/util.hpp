@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cstdarg>
 #include <stack>
+#include <sstream>
 
 #include <ctime>
 
@@ -153,6 +154,26 @@ private:
     T v_;
     std::function<void (T)> close_;
 };
+
+std::string concat(std::stringstream &s)
+{
+    return s.str();
+}
+
+template <typename T, typename ... Args>
+std::string concat(std::stringstream &s, T head, Args ... tail)
+{
+    s << head;
+    return concat(s, tail...);
+}
+
+template <typename T, typename ... Args>
+std::string concat(T head, Args ... tail)
+{
+    std::stringstream ss;
+    ss << head;
+    return concat(ss, tail...);
+}
 
 
 } // namespace cor
