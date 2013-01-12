@@ -24,6 +24,8 @@
  * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  */
 
+#include <cor/error.hpp>
+
 #include <map>
 #include <functional>
 #include <algorithm>
@@ -31,6 +33,7 @@
 #include <set>
 #include <stdexcept>
 #include <cstring>
+#include <ostream>
 
 namespace cor
 {
@@ -97,7 +100,7 @@ public:
      * @opts map to gather (item_name, value) association
      * @params container to gather parameters
      */
-    int parse(int argc, char *argv[],
+    int parse(int argc, char const *argv[],
               map_type &opts,
               std::vector<char const*> &params) const
     {
@@ -134,11 +137,17 @@ public:
         };
 
         auto parse_long = [&](char const *s, size_t) {
-            auto p = long_opts_.find(&s[2]);
+            auto pname = &s[2];
+            auto peq = strchr(pname, '=');
+            name = (peq
+                    ? std::string(pname, peq - pname)
+                    : std::string(pname));
+            auto p = long_opts_.find(name);
             if (p == long_opts_.end()) {
                 params.push_back(s);
                 return;
             }
+            // unified name is taken from map
             name = p->second;
 
             is_leave_param = (leave_in_params_.count(name) != 0);
@@ -146,10 +155,17 @@ public:
                 params.push_back(s);
 
             auto p_has = opt_with_params_.find(name);
-            if (p_has == opt_with_params_.end())
-                opts[name] = 0;
-            else
-                stage = opt_param;
+            if (p_has == opt_with_params_.end()) {
+                if (peq)
+                    throw cor::Error("option %s, unexpected param %s",
+                                     name.c_str(), peq);
+                opts[name] = nullptr;
+            } else {
+                if (peq)
+                    opts[name] = peq;
+                else
+                    stage = opt_param;
+            }
         };
 
         auto parse_opt_param = [&](char const *s, size_t len) {
@@ -163,16 +179,17 @@ public:
 
         auto parse_option = [&](char const *s, size_t len) {
             if (s[0] == '-') {
-                if (len > 3 && s[1] == '-')
+                if (len > 2 && s[1] == '-') {
                     parse_long(s, len);
-                else
+                } else {
                     parse_short(s, len);
+                }
             } else {
                 params.push_back(s);
             }
         };
 
-        auto process = [&](char *v) {
+        auto process = [&](char const *v) {
             size_t len = std::strlen(v);
             if (!len)
                 return;
