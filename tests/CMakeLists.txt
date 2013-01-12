@@ -1,2 +1,2 @@
-add_executable(test_cor main.cpp)
+add_executable(test_cor main.cpp options.cpp)
 add_test(test "./test_cor")
