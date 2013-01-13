@@ -15,16 +15,7 @@ namespace tut
 int main(int argc, const char *argv[])
 {
     tut::console_reporter reporter;
-    tut::cppunit_reporter xreporter("self_test.xml");
     tut::runner.get().set_callback(&reporter);
-
-    if(argc>1 && std::string(argv[1]) == "-x")
-    {
-        tut::runner.get().insert_callback(&xreporter);
-        argc--;
-        argv++;
-    }
-
     try
     {
         if(tut::tut_main(argc, argv))
