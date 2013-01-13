@@ -36,15 +36,18 @@ enum test_ids {
     tid_short_w_param,
     tid_long_unknown_no_short,
     tid_long,
-    tid_long_w_param
+    tid_long_w_param,
+    tid_long_w_param_eq,
+    tid_long_w_long_param_eq
+
 };
 
 typedef cor::OptParse<std::string> option_parser_type;
 using cor::concat;
 
-template <size_t N> void check_params
+void check_params
 (std::vector<char const*> params,
- std::array<char const *, N> const &argv,
+ std::vector<char const *> const &argv,
  size_t params_count,
  std::initializer_list<std::pair<size_t, size_t> > argv_param)
 {
@@ -61,8 +64,8 @@ void check_options
     ensure_eq("options count", expected.size(), options.size());
     auto p = options.begin();
     for (auto &i : expected) {
-        ensure_eq("option name", i.first, p->first);
-        ensure_eq("option value", i.second, p->second);
+        ensure_eq("option name", std::string(i.first), p->first);
+        ensure_eq("option value", std::string(i.second), p->second);
         ++p;
     }
 }
@@ -71,7 +74,7 @@ template<>
 template<>
 void object::test<tid_only_exec>()
 {
-    std::array<char const*, 1> argv({{"test"}});
+    std::vector<char const*> argv({{"test"}});
     option_parser_type options({}, {}, {}, {});
     option_parser_type::map_type opts;
     std::vector<char const*> params;
@@ -84,7 +87,7 @@ template<>
 template<>
 void object::test<tid_exec_param>()
 {
-    std::array<char const*, 2> argv({{"test", "x"}});
+    std::vector<char const*> argv({{"test", "x"}});
     option_parser_type options({}, {}, {}, {});
     option_parser_type::map_type opts;
     std::vector<char const*> params;
@@ -98,7 +101,7 @@ template<>
 template<>
 void object::test<tid_short_unknown>()
 {
-    std::array<char const*, 2> argv({{"test", "-x"}});
+    std::vector<char const*> argv({{"test", "-x"}});
     option_parser_type options({}, {}, {}, {});
     option_parser_type::map_type opts;
     std::vector<char const*> params;
@@ -112,13 +115,13 @@ template<>
 template<>
 void object::test<tid_short>()
 {
-    std::array<char const*, 2> argv({{"test", "-x"}});
+    std::vector<char const*> argv({{"test", "-x"}});
     option_parser_type options({{'x', "o-x"}}, {}, {}, {});
     option_parser_type::map_type opts;
     std::vector<char const*> params;
     options.parse(argv.size(), &argv[0], opts, params);
     check_params(params, argv, 1, {{0, 0}});
-    check_options(opts, {{"o-x", nullptr}});
+    check_options(opts, {{"o-x", ""}});
 }
 
 /// short option without param, followed by param
@@ -126,13 +129,13 @@ template<>
 template<>
 void object::test<tid_short_wo_param>()
 {
-    std::array<char const*, 3> argv({{"test", "-x", "X"}});
+    std::vector<char const*> argv({{"test", "-x", "X"}});
     option_parser_type options({{'x', "o-x"}}, {}, {}, {});
     option_parser_type::map_type opts;
     std::vector<char const*> params;
     options.parse(argv.size(), &argv[0], opts, params);
     check_params(params, argv, 2, {{0, 0}, {1, 2}});
-    check_options(opts, {{"o-x", nullptr}});
+    check_options(opts, {{"o-x", ""}});
 }
 
 /// short option with param
@@ -140,7 +143,7 @@ template<>
 template<>
 void object::test<tid_short_w_param>()
 {
-    std::array<char const*, 3> argv({{"test", "-x", "X"}});
+    std::vector<char const*> argv({{"test", "-x", "X"}});
     option_parser_type options({{'x', "o-x"}}, {}, {"o-x"}, {});
     option_parser_type::map_type opts;
     std::vector<char const*> params;
@@ -155,7 +158,7 @@ template<>
 template<>
 void object::test<tid_long_unknown_no_short>()
 {
-    std::array<char const*, 3> argv({{"test", "--x", "X"}});
+    std::vector<char const*> argv({{"test", "--x", "X"}});
     option_parser_type options({{'x', "o-x"}}, {}, {"o-x"}, {});
     option_parser_type::map_type opts;
     std::vector<char const*> params;
@@ -169,7 +172,7 @@ template<>
 template<>
 void object::test<tid_long>()
 {
-    std::array<char const*, 3> argv({{"test", "--x", "X"}});
+    std::vector<char const*> argv({{"test", "--x", "X"}});
     option_parser_type options({{'x', "o-short-x"}},
                                {{"x", "o-long-x"}},
                                {},
@@ -178,7 +181,7 @@ void object::test<tid_long>()
     std::vector<char const*> params;
     options.parse(argv.size(), &argv[0], opts, params);
     check_params(params, argv, 2, {{0, 0}, {1, 2}});
-    check_options(opts, {{"o-long-x", nullptr}});
+    check_options(opts, {{"o-long-x", ""}});
 }
 
 /// long option with param
@@ -186,7 +189,7 @@ template<>
 template<>
 void object::test<tid_long_w_param>()
 {
-    std::array<char const*, 3> argv({{"test", "--x", "X"}});
+    std::vector<char const*> argv({{"test", "--x", "X"}});
     option_parser_type options({{'x', "o-short-x"}},
                                {{"x", "o-long-x"}},
                                {"o-long-x"},
@@ -196,6 +199,38 @@ void object::test<tid_long_w_param>()
     options.parse(argv.size(), &argv[0], opts, params);
     check_params(params, argv, 1, {{0, 0}});
     check_options(opts, {{"o-long-x", "X"}});
+}
+
+template<>
+template<>
+void object::test<tid_long_w_param_eq>()
+{
+    std::vector<char const*> argv({{"test", "--x=X"}});
+    option_parser_type options({{'x', "o-short-x"}},
+                               {{"x", "o-long-x"}},
+                               {"o-long-x"},
+                               {});
+    option_parser_type::map_type opts;
+    std::vector<char const*> params;
+    options.parse(argv.size(), &argv[0], opts, params);
+    check_params(params, argv, 1, {{0, 0}});
+    check_options(opts, {{"o-long-x", "X"}});
+}
+
+template<>
+template<>
+void object::test<tid_long_w_long_param_eq>()
+{
+    std::vector<char const*> argv({{"test", "--x=X-X"}});
+    option_parser_type options({{'x', "o-short-x"}},
+                               {{"x", "o-long-x"}},
+                               {"o-long-x"},
+                               {});
+    option_parser_type::map_type opts;
+    std::vector<char const*> params;
+    options.parse(argv.size(), &argv[0], opts, params);
+    check_params(params, argv, 1, {{0, 0}});
+    check_options(opts, {{"o-long-x", "X-X"}});
 }
 
 }

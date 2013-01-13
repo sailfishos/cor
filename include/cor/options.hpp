@@ -44,7 +44,7 @@ class OptParse
 public:
     typedef std::map<char, char const*> short_opts_type;
     typedef typename short_opts_type::value_type short_item_type;
-    typedef std::map<StringT, char const*> map_type;
+    typedef std::map<StringT, StringT> map_type;
     typedef typename map_type::value_type item_type;
 
     /**
@@ -126,7 +126,7 @@ public:
                 params.push_back(s);
 
             if (!opt_with_params_.count(name)) {
-                opts[name] = nullptr;
+                opts[name] = "";
             } else if (len > 2) {
                 opts[name] = &s[2];
                 if (is_leave_param)
@@ -137,11 +137,12 @@ public:
         };
 
         auto parse_long = [&](char const *s, size_t) {
-            auto pname = &s[2];
-            auto peq = strchr(pname, '=');
+            char const *pname = &s[2];
+            char const *peq = strchr(pname, '=');
             name = (peq
                     ? std::string(pname, peq - pname)
                     : std::string(pname));
+
             auto p = long_opts_.find(name);
             if (p == long_opts_.end()) {
                 params.push_back(s);
@@ -159,10 +160,10 @@ public:
                 if (peq)
                     throw cor::Error("option %s, unexpected param %s",
                                      name.c_str(), peq);
-                opts[name] = nullptr;
+                opts[name] = "";
             } else {
                 if (peq)
-                    opts[name] = peq;
+                    opts[name] = &peq[1];
                 else
                     stage = opt_param;
             }
