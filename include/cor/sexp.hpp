@@ -75,9 +75,8 @@ int char2hex(CharT c)
     return -1;
 };
 
-
-template <typename CharT, typename BuilderT>
-void parse(std::basic_istream<CharT> &src, BuilderT &builder)
+template <typename CharT, typename HandlerT>
+void parse(std::basic_istream<CharT> &src, HandlerT &handler)
 {
     enum Action {
         Stay,
@@ -116,10 +115,10 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
             if (!level)
                 throw Error(src, "Unexpected ')'");
             --level;
-            builder.on_list_end();
+            handler.on_list_end();
         } else if (c == '(') {
             ++level;
-            builder.on_list_begin();
+            handler.on_list_begin();
         } else if (c == ';') {
             rule_use(in_comment);
         } else if (::isspace(c)) {
@@ -137,7 +136,7 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
         if (c != '\n' && c != eos) {
             data += c;
         } else {
-            builder.on_comment(std::move(data));
+            handler.on_comment(std::move(data));
             rule_use(top);
         }
         return Skip;
@@ -202,7 +201,7 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
     in_atom = [&](int c) -> Action {
         static const std::string bound("()");
         if (bound.find(c) != std::string::npos || isspace(c) || c == eos) {
-            builder.on_atom(std::move(data));
+            handler.on_atom(std::move(data));
             rule_use(top);
             return Stay;
         } else if (c == '\\') {
@@ -215,7 +214,7 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
 
     in_string = [&](int c) -> Action {
         if (c == '"') {
-            builder.on_string(std::move(data));
+            handler.on_string(std::move(data));
             rule_use(top);
         } else if (c == '\\') {
             return process_escaped();
@@ -244,6 +243,17 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
     }
 
 }
+
+/// interface can be inherited by a handler in the case parser is used
+/// for multiply handlers to avoid multiply instantiations
+class AbstractHandler {
+public:
+    virtual void on_list_begin() =0;
+    virtual void on_list_end() =0;
+    virtual void on_comment(std::string &&s) =0;
+    virtual void on_string(std::string &&s) =0;
+    virtual void on_atom(std::string &&s) =0;
+};
 
 } // namespace
 } // namespace
