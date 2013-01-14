@@ -83,7 +83,8 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
         Stay,
         Skip
     };
-    typedef std::function<Action (CharT)> parser_t;
+    const int eos = -1;
+    typedef std::function<Action (int)> parser_t;
     parser_t rule, top, in_string, in_atom, in_comment,
         append_escaped, append_escaped_hex;
     stack<parser_t> ctx;
@@ -93,24 +94,24 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
     int hex_byte;
 
     auto rule_use = [&](parser_t const &p) {
-            data = "";
-            data.reserve(256);
-            rule = p;
+        data = "";
+        data.reserve(256);
+        rule = p;
     };
 
     auto rule_pop = [&]() {
         auto p = ctx.top();
         ctx.pop();
-        rule_use(p);
+        rule = p;
     };
 
     auto rule_push = [&](parser_t const &after,
-                              parser_t const &current) {
+                         parser_t const &current) {
         ctx.push(after);
-        rule_use(current);
+        rule = current;
     };
 
-    top = [&](CharT c) -> Action {
+    top = [&](int c) -> Action {
         if (c == ')') {
             if (!level)
                 throw Error(src, "Unexpected ')'");
@@ -125,15 +126,15 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
             // do nothing
         } else if (c == '"') {
             rule_use(in_string);
-        } else {
+        } else if (c != eos) {
             rule_use(in_atom);
             return Stay;
         }
         return Skip;
     };
 
-    in_comment = [&](CharT c) -> Action {
-        if (c != '\n') {
+    in_comment = [&](int c) -> Action {
+        if (c != '\n' && c != eos) {
             data += c;
         } else {
             builder.on_comment(std::move(data));
@@ -142,22 +143,22 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
         return Skip;
     };
 
-    auto in_hex = [&](CharT c) -> Action {
-        int n = char2hex(c);
-        if (n < 0)
-            goto append;
-
-        if (hex_byte < 0) {
-            hex_byte = (n << 4);
-            return Skip;
+    auto in_hex = [&](int c) -> Action {
+        if (c != eos) {
+            int n = char2hex(c);
+            if (n >= 0) {
+                if (hex_byte < 0) {
+                    hex_byte = (n << 4);
+                    return Skip;
+                }
+                hex_byte |= n;
+            }
         }
-        hex_byte |= n;
-    append:
         rule_pop();
         return Stay;
     };
 
-    append_escaped_hex = [&](CharT) -> Action {
+    append_escaped_hex = [&](int) -> Action {
         if (hex_byte < 0)
             throw Error(src, "Escaped hex is empty");
 
@@ -172,20 +173,23 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
         return Skip;
     };
 
-    append_escaped = [&](CharT c) -> Action {
+    append_escaped = [&](int c) -> Action {
         static const std::unordered_map<char, char>
         assoc{{'n', '\n'}, {'t', '\t'}, {'r', '\r'}, {'a', '\a'},
               {'b', '\b'}, {'v', '\v'}};
+
+        if (c == eos)
+            throw Error(src, "Expected escaped symbol, got EOS");
 
         if (c == 'x')
             return process_hex(append_escaped_hex);
 
         auto p = assoc.find(c);
-        if (p != assoc.end())
+        if (p != assoc.end()) {
             data += p->second;
-        else
+        } else {
             data += c;
-
+        }
         rule_pop();
         return Skip;
     };
@@ -195,9 +199,9 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
         return Skip;
     };
 
-    in_atom = [&](CharT c) -> Action {
+    in_atom = [&](int c) -> Action {
         static const std::string bound("()");
-        if (bound.find(c) != std::string::npos || isspace(c)) {
+        if (bound.find(c) != std::string::npos || isspace(c) || c == eos) {
             builder.on_atom(std::move(data));
             rule_use(top);
             return Stay;
@@ -209,12 +213,14 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
         return Skip;
     };
 
-    in_string = [&](CharT c) -> Action {
+    in_string = [&](int c) -> Action {
         if (c == '"') {
             builder.on_string(std::move(data));
             rule_use(top);
         } else if (c == '\\') {
             return process_escaped();
+        } else if (c == eos) {
+            throw Error(src, "string is not limited, got EOS");
         } else {
             data += c;
         }
@@ -225,8 +231,10 @@ void parse(std::basic_istream<CharT> &src, BuilderT &builder)
     try {
         while (true) {
             CharT c = src.get();
-            if (src.gcount() == 0)
+            if (src.gcount() == 0) {
+                rule(eos);
                 break;
+            }
             
             while (rule(c) == Stay) {}
         }
