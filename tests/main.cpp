@@ -20,27 +20,21 @@ int main(int argc, const char *argv[])
     {
         if(tut::tut_main(argc, argv))
         {
-            if(reporter.all_ok())
-            {
+            if(reporter.all_ok()) {
                 return 0;
-            }
-            else
-            {
+            } else {
                 std::cerr << std::endl;
                 std::cerr << "tests are failed" << std::endl;
             }
         }
     }
-    catch(const tut::no_such_group &ex)
-    {
+    catch(const tut::no_such_group &ex) {
         std::cerr << "No such group: " << ex.what() << std::endl;
     }
-    catch(const tut::no_such_test &ex)
-    {
+    catch(const tut::no_such_test &ex) {
         std::cerr << "No such test: " << ex.what() << std::endl;
     }
-    catch(const tut::tut_error &ex)
-    {
+    catch(const tut::tut_error &ex) {
         std::cout << "General error: " << ex.what() << std::endl;
     }
 
