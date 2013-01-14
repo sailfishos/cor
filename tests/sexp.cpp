@@ -28,7 +28,8 @@ enum test_ids {
     tid_empty = 1,
     tid_enclosured,
     tid_comment,
-    tid_string
+    tid_string,
+    tid_atom
 };
 
 class BasicTestBuilder {
@@ -90,33 +91,39 @@ void object::test<tid_enclosured>()
         test_with(v);
 }
 
+typedef std::pair<std::string, std::string> compare_type;
+
+template <typename BuilderT>
+static void test_with
+(BuilderT &builder, std::string const &name, compare_type const &p,
+ int enters = 0, int exits = 0, int depth = 0)
+{
+    std::string const &exp = p.first;
+    std::string const &expected = p.second;
+    std::string suffix(". parsing'" + exp + "'");
+    std::istringstream in(exp);
+    cor::sexp::parse(in, builder);
+    ensure_eq("depth" + suffix, builder.depth, depth);
+    ensure_eq("enters" + suffix, builder.enter_count, enters);
+    ensure_eq("exits" + suffix, builder.exit_count, exits);
+    ensure_eq(name + suffix, builder.data, expected);
+};
+
 template<> template<>
 void object::test<tid_comment>()
 {
     struct TestBuilder : public BasicTestBuilder {
         void on_comment(std::string &&s) {
-            comment = std::move(s);
+            data = std::move(s);
         }
-        std::string comment;
+        std::string data;
     };
-    typedef std::pair<std::string, std::string> data_type;
 
-    auto test_with = [](data_type const &p) {
-        std::string const &exp = p.first;
-        std::string const &expected = p.second;
-        TestBuilder builder;
-        std::string suffix(". parsing'" + exp + "'");
-        std::istringstream in(exp);
-        cor::sexp::parse(in, builder);
-        ensure_eq("depth" + suffix, builder.depth, 0);
-        ensure_eq("enters" + suffix, builder.enter_count, 0);
-        ensure_eq("exits" + suffix, builder.exit_count, 0);
-        ensure_eq("comment" + suffix, builder.comment, expected);
-    };
-    std::vector<data_type> data
+    TestBuilder builder;
+    std::vector<compare_type> data
         = {{";", ""}, {";X", "X"}, {";X\n", "X"}};
     for (auto &v : data)
-        test_with(v);
+        test_with(builder, "comment", v);
 }
 
 template<> template<>
@@ -124,29 +131,42 @@ void object::test<tid_string>()
 {
     struct TestBuilder : public BasicTestBuilder {
         void on_string(std::string &&s) {
-            str = std::move(s);
+            data = std::move(s);
         }
-        std::string str;
+        std::string data;
     };
-    typedef std::pair<std::string, std::string> data_type;
-
-    auto test_with = [](data_type const &p) {
-        std::string const &exp = p.first;
-        std::string const &expected = p.second;
-        TestBuilder builder;
-        std::string suffix(". parsing'" + exp + "'");
-        std::istringstream in(exp);
-        cor::sexp::parse(in, builder);
-        ensure_eq("depth" + suffix, builder.depth, 0);
-        ensure_eq("enters" + suffix, builder.enter_count, 0);
-        ensure_eq("exits" + suffix, builder.exit_count, 0);
-        ensure_eq("string" + suffix, builder.str, expected);
-    };
-    std::vector<data_type> data
-        = {{"\"\"", ""}, {"\"X\"", "X"}, {"\"\n\t \"", "\n\t "},
-           {"\"(\"", "("}, {"\")\"", ")"}, {"\"\\\"\"", "\""}};
+    TestBuilder builder;
+    std::vector<compare_type> data
+        = {{"\"\"", ""}, {"\"S\"", "S"}, {"\"\n\t \"", "\n\t "},
+           {"\"(\"", "("}, {"\")\"", ")"}, {"\"\\\"\"", "\""},
+           {"\"\\\n\"", "\n"}, {"\"\\\"r\"", "\"r"}};
     for (auto &v : data)
-        test_with(v);
+        test_with(builder, "string", v);
+}
+
+template<> template<>
+void object::test<tid_atom>()
+{
+    struct TestBuilder : public BasicTestBuilder {
+        void on_atom(std::string &&s) {
+            data = std::move(s);
+        }
+        std::string data;
+    };
+    TestBuilder builder;
+    std::vector<compare_type> data
+        = {{"a", "a"}, {" b", "b"}, {"c ", "c"},
+           {"1", "1"}, {"1.1", "1.1"}, {"-12.34", "-12.34"},
+           {"=d@", "=d@"}, {"e\n", "e"} };
+    for (auto &v : data)
+        test_with(builder, "atom", v);
+
+    std::vector<compare_type> data2
+        = {{"a(", "a"}, {"a (", "a"}, {"(a", "a"}, {"(a", "a"}};
+    for (auto &v : data2) {
+        TestBuilder builder2;
+        test_with(builder2, "atom", v, 1, 0, 1);
+    }
 }
 
 }
