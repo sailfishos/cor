@@ -25,7 +25,7 @@ struct options_test
 
 typedef test_group<options_test> tf;
 typedef tf::object object;
-tf ensure_op_test("options");
+tf cor_options_test("options");
 
 enum test_ids {
     tid_only_exec = 1,
