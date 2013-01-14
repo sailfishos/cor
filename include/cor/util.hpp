@@ -155,7 +155,7 @@ private:
     std::function<void (T)> close_;
 };
 
-std::string concat(std::stringstream &s)
+static inline std::string concat(std::stringstream &s)
 {
     return s.str();
 }
