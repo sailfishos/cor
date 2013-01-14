@@ -82,78 +82,58 @@ public:
     }
 };
 
-class Fd
+struct FdTraits
 {
+    void close_(int v) { ::close(v); }
+    bool is_valid_(int v) const { return v >= 0; }
+    int invalid_() const { return -1; }
+};
+
+template <typename T, typename TraitsT>
+class Handle : private TraitsT
+{
+    typedef TraitsT base_type;
 public:
-    Fd(int v) : fd(v) {}
 
-    ~Fd() { close(); }
+    Handle() : v_(base_type::invalid_()) {}
+    Handle(T v) : v_(v) {}
+    ~Handle() { close(); }
 
-    Fd(Fd &&from)
+    Handle(Handle &&from)
+        : v_(from.v_)
     {
-        fd = from.fd;
-        from.fd = -1;
+        from.v_ = base_type::invalid_();
     }
 
-    bool is_valid() const { return (fd >= 0); }
+    Handle & operator =(Handle &&from)
+    {
+        v_ = from.v_;
+        from.v_ = base_type::invalid_();
+        return *this;
+    }
+
+    bool is_valid() const { return is_valid_(v_); }
 
     void close()
     {
-        if (is_valid()) {
-            ::close(fd);
-            fd = -1;
+        if (base_type::is_valid_(v_)) {
+            base_type::close_(v_);
+            v_ = base_type::invalid_();
         }
     }
 
-    int fd;
-
-private:
-    Fd(Fd &);
-    Fd & operator = (Fd &);
-};
-
-template <typename T>
-class Handle
-{
-public:
-    Handle(T v, std::function<void (T)> close)
-        : v_(v), close_(close)
-    {}
-
-    ~Handle()
-    {
-        close_(v_);
-    }
-
-    Handle(Handle &&from)
-    {
-        v_ = from.v_;
-        close_ = from.close_;
-        from.close_ = [](T) {};
-    }
-
-    T value() const
-    {
-        return v_;
-    }
-
-    T& ref()
-    {
-        return v_;
-    }
-
-    T const& cref() const
-    {
-        return v_;
-    }
+    T value() const { return v_; }
+    T& ref() { return v_; }
+    T const& cref() const { return v_; }
 
 private:
     Handle(Handle &);
     Handle & operator = (Handle &);
 
     T v_;
-    std::function<void (T)> close_;
 };
+
+typedef Handle<int, FdTraits> FdHandle;
 
 static inline std::string concat(std::stringstream &s)
 {
