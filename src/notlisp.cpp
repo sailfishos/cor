@@ -91,5 +91,38 @@ expr_ptr default_atom_convert(std::string &&s)
     return res;
 }
 
+void Interpreter::on_list_end()
+{
+    auto &t = stack.top();
+    auto &expr = *t.begin();
+    auto p = eval(env, expr);
+    if (!p)
+        throw cor::Error("Got null evaluating %s, expecting function",
+                         expr->value().c_str());
+
+    if (p->type() != Expr::Function)
+        throw std::logic_error("Not a function");
+    t.pop_front();
+    expr_ptr res;
+    try {
+        res = static_cast<FunctionExpr&>(*p)(env, eval(env, t));
+    } catch (cor::Error const &e) {
+        std::cerr << "Error '" << e.what() << "' evaluating "
+                  << *p << std::endl;
+        throw e;
+    }
+    stack.pop();
+    stack.top().push_back(res);
+}
+
+expr_list_type eval(env_ptr env, expr_list_type const &src)
+{
+    expr_list_type res;
+    std::transform(src.begin(), src.end(),
+                   std::back_inserter(res),
+                   [env](expr_ptr p) { return eval(env, p); });
+    return res;
+}
+
 } // notlisp
 } // cor

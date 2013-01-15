@@ -147,14 +147,9 @@ std::basic_ostream<CharT> & operator <<
 
 expr_ptr eval(env_ptr env, expr_ptr src);
 
-static inline expr_list_type eval(env_ptr env, expr_list_type const &src)
-{
-    expr_list_type res;
-    std::transform(src.begin(), src.end(),
-                   std::back_inserter(res),
-                   [env](expr_ptr p) { return eval(env, p); });
-    return res;
-}
+/// evaluates list using environment env. Returns result list,
+/// std::move is considered to be used
+expr_list_type eval(env_ptr env, expr_list_type const &src);
 
 
 template <Expr::Type T>
@@ -283,29 +278,8 @@ public:
         stack.push(expr_list_type());
     }
 
-    void on_list_end()
-    {
-        auto &t = stack.top();
-        auto &expr = *t.begin();
-        auto p = eval(env, expr);
-        if (!p)
-            throw cor::Error("Got null evaluating %s, expecting function",
-                             expr->value().c_str());
+    void on_list_end();
 
-        if (p->type() != Expr::Function)
-            throw std::logic_error("Not a function");
-        t.pop_front();
-        expr_ptr res;
-        try {
-            res = static_cast<FunctionExpr&>(*p)(env, eval(env, t));
-        } catch (cor::Error const &e) {
-            std::cerr << "Error '" << e.what() << "' evaluating "
-                      << *p << std::endl;
-            throw e;
-        }
-        stack.pop();
-        stack.top().push_back(res);
-    }
     void on_comment(std::string &&s) { }
 
     void on_string(std::string &&s) {
