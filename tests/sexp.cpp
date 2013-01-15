@@ -36,6 +36,11 @@ namespace sexp = cor::sexp;
 
 class BasicTestHandler : public sexp::AbstractHandler {
 public:
+
+    BasicTestHandler()
+        : enter_count(0), exit_count(0), depth(0), is_eof(false)
+    {}
+
     void on_list_begin() {
         ++enter_count; ++depth;
     }
@@ -54,10 +59,10 @@ public:
 
     void on_eof() { is_eof = true; }
 
-    int enter_count = 0;
-    int exit_count = 0;
-    int depth = 0;
-    bool is_eof = false;
+    int enter_count;
+    int exit_count;
+    int depth;
+    bool is_eof;
 };
 
 using cor::concat;
