@@ -148,5 +148,18 @@ expr_list_type eval(env_ptr env, expr_list_type const &src)
     return res;
 }
 
+ListAccessor & operator >> (ListAccessor &src, expr_ptr dst)
+{
+    dst = std::move(src.required());
+    return src;
+}
+
+expr_ptr ListAccessor::required()
+{
+    if (cur == end)
+        throw Error("Required param is absent");
+        return *cur++;
+}
+
 } // notlisp
 } // cor

@@ -338,18 +338,13 @@ public:
           end(params.end())
     {}
 
+    expr_ptr required();
+
     /// access required parameters list member, write result using
     /// convert function to dst. \return this object to allow chained
     /// calls like accessor.required(convertx, p1).required(converty, p2)
     template <typename T>
-    ListAccessor& required(void (*convert)(expr_ptr, T &dst), T &dst)
-    {
-        if (cur == end)
-            throw Error("Required param is absent");
-
-        convert(*cur++, dst);
-        return *this;
-    }
+    ListAccessor& required(void (*convert)(expr_ptr, T &dst), T &dst);
 
     template <typename ConsumerT>
     bool optional(ConsumerT fn)
@@ -371,6 +366,15 @@ private:
     expr_list_type::const_iterator cur;
     expr_list_type::const_iterator end;
 };
+
+ListAccessor & operator >> (ListAccessor &src, expr_ptr dst);
+
+template <typename T>
+ListAccessor& ListAccessor::required(void (*convert)(expr_ptr, T &dst), T &dst)
+{
+    convert(required(), dst);
+    return *this;
+}
 
 template <typename ConsumerT>
 static void rest(ListAccessor &src, ConsumerT fn)
