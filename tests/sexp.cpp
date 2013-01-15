@@ -52,9 +52,12 @@ public:
         throw cor::Error("no atom expected, got %s", s.c_str());
     }
 
+    void on_eof() { is_eof = true; }
+
     int enter_count = 0;
     int exit_count = 0;
     int depth = 0;
+    bool is_eof = false;
 };
 
 using cor::concat;
@@ -69,6 +72,7 @@ static void basic_test_with
     ensure_eq("depth" + suffix, handler.depth, depth);
     ensure_eq("enters" + suffix, handler.enter_count, enters);
     ensure_eq("exits" + suffix, handler.exit_count, exits);
+    ensure_eq("eof" + suffix, handler.is_eof, true);
 };
 
 template<> template<>
@@ -101,6 +105,7 @@ static void test_with
     ensure_eq("enters" + suffix, handler.enter_count, enters);
     ensure_eq("exits" + suffix, handler.exit_count, exits);
     ensure_eq(name + suffix, handler.data, expected);
+    ensure_eq("eof" + suffix, handler.is_eof, true);
 };
 
 template<> template<>

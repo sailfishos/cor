@@ -293,6 +293,9 @@ public:
         stack.top().push_back(convert_atom(std::move(s)));
     }
 
+    void on_eof() {
+    }
+
     expr_list_type const& results() const
     {
         return stack.top();

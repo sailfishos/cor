@@ -241,7 +241,7 @@ void parse(std::basic_istream<CharT> &src, HandlerT &handler)
         std::cerr << mk_sexp_err_msg(src, e.what()) << std::endl;
         throw e;
     }
-
+    handler.on_eof();
 }
 
 /// interface can be inherited by a handler in the case parser is used
@@ -253,6 +253,7 @@ public:
     virtual void on_comment(std::string &&s) =0;
     virtual void on_string(std::string &&s) =0;
     virtual void on_atom(std::string &&s) =0;
+    virtual void on_eof() =0;
 };
 
 } // namespace
