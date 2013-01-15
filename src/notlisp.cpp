@@ -32,7 +32,7 @@ expr_ptr mk_lambda(std::string const &name, lambda_type const &fn)
 
 expr_ptr eval(env_ptr env, expr_ptr src)
 {
-    return src->do_eval(env, src);
+    return src ? src->do_eval(env, src) : mk_nil();
 }
 
 static void must_have_type(expr_ptr expr, Expr::Type t,
