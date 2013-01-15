@@ -114,6 +114,10 @@ expr_ptr default_atom_convert(std::string &&s)
 void Interpreter::on_list_end()
 {
     auto &t = stack.top();
+
+    if (t.empty())
+        throw Error("Evaluation of empty expression");
+
     auto &expr = *t.begin();
     auto p = eval(env, expr);
     if (!p)
