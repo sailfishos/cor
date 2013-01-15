@@ -44,22 +44,26 @@ template <typename ... Args>
 std::string mk_sexp_err_msg(std::basic_istream<char> &src,
                             char const *info, Args ... args)
 {
-    std::stringstream ss;
-    ss << "S-exp parsing error @ " << src.tellg() << ". "
-       << mk_error_message(info, args...);
-    return ss.str();
+    return concat("error parsing S-exp, pos ", src.tellg(), ": ",
+                  mk_error_message(info, args...));
 }
 
 class Error : public cor::Error
 {
 public:
     template <typename ... Args>
-    Error(std::basic_istream<char> &src,
-          char const *info, Args ... args)
-        : cor::Error(mk_sexp_err_msg(src, info, args...)),
-          src(src) {}
-private:
-    std::basic_istream<char> &src;
+    Error(std::basic_istream<char> &src, char const *info, Args ... args)
+        : cor::Error(mk_sexp_err_msg(src, info, args...))
+    {}
+};
+
+class ErrorWrapper : public Error
+{
+public:
+    ErrorWrapper(std::basic_istream<char> &src, std::exception const &wrapped)
+        : Error(src, "wrapped error"), wrapped_(wrapped) {}
+
+    std::exception const wrapped_;
 };
 
 template <typename CharT>
@@ -74,6 +78,7 @@ int char2hex(CharT c)
 
     return -1;
 };
+
 
 template <typename CharT, typename HandlerT>
 void parse(std::basic_istream<CharT> &src, HandlerT &handler)
@@ -237,9 +242,10 @@ void parse(std::basic_istream<CharT> &src, HandlerT &handler)
             
             while (rule(c) == Stay) {}
         }
-    } catch (std::exception const &e) {
-        std::cerr << mk_sexp_err_msg(src, e.what()) << std::endl;
+    } catch (Error const &e) {
         throw e;
+    } catch (std::exception const &e) {
+        throw ErrorWrapper(src, e);
     }
     handler.on_eof();
 }
