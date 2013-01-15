@@ -54,16 +54,10 @@ public:
     template <typename ... Args>
     Error(std::basic_istream<char> &src, char const *info, Args ... args)
         : cor::Error(mk_sexp_err_msg(src, info, args...))
+        , pos(src.tellg())
     {}
-};
 
-class ErrorWrapper : public Error
-{
-public:
-    ErrorWrapper(std::basic_istream<char> &src, std::exception const &wrapped)
-        : Error(src, "wrapped error"), wrapped_(wrapped) {}
-
-    std::exception const wrapped_;
+    size_t pos;
 };
 
 template <typename CharT>
@@ -79,9 +73,37 @@ int char2hex(CharT c)
     return -1;
 };
 
+template <typename CharT>
+class Parser
+{
+public:
+    Parser(std::basic_istream<CharT> &src)
+        : src(src)
+    {}
+
+    template <typename HandlerT>
+    void operator ()(HandlerT &handler);
+
+    std::basic_istream<CharT> &src;
+};
+
+template <typename CharT>
+Parser<CharT> mk_parser(std::basic_istream<CharT> &src)
+{
+    return Parser<CharT>(src);
+}
+
 
 template <typename CharT, typename HandlerT>
 void parse(std::basic_istream<CharT> &src, HandlerT &handler)
+{
+    Parser<CharT> parser(src);
+    parser(handler);
+}
+
+template <typename CharT>
+template <typename HandlerT>
+void Parser<CharT>::operator ()(HandlerT &handler)
 {
     enum Action {
         Stay,
@@ -243,9 +265,9 @@ void parse(std::basic_istream<CharT> &src, HandlerT &handler)
             while (rule(c) == Stay) {}
         }
     } catch (Error const &e) {
-        throw e;
+        throw;
     } catch (std::exception const &e) {
-        throw ErrorWrapper(src, e);
+        throw;
     }
     handler.on_eof();
 }
