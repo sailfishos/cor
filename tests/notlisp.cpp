@@ -90,23 +90,17 @@ template<> template<>
 void object::test<tid_wrong_expr>()
 {
     using namespace cor::notlisp;
-    using cor::sexp::mk_parser;
 
     env_ptr env(new Env({}));
     auto exec = [&env] (std::string const &data, size_t pos) {
         std::istringstream in(data);
-        auto parser(mk_parser(in));
         Interpreter interpreter(env);
-        auto check_position = [&in, pos](Error const &e) {
-            ensure_eq("correct position", in.tellg(), pos);
-        };
-        auto parse = [&parser, &interpreter]() {
-            parser(interpreter);
+        auto parse = [&in, &interpreter]() {
+            cor::sexp::parse(in, interpreter);
         };
 
-        ensure_throws_verify<Error>(
-            "Non-executable should fail on evaluation",
-            parse, check_position);
+        ensure_throws<Error>("Should fail on evaluation", parse);
+        ensure_eq("correct position", in.tellg(), pos);
     };
     std::vector<std::pair<std::string, size_t>> data =
         {{"()", 2}, {"(e)", 3}};
