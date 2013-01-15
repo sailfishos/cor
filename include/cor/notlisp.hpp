@@ -241,7 +241,8 @@ expr_ptr mk_lambda(std::string const &name, lambda_type const &fn);
 
 void to_string(expr_ptr expr, std::string &dst);
 
-static inline Env::item_type mk_record(std::string const &name, lambda_type const &fn)
+static inline Env::item_type mk_record
+(std::string const &name, lambda_type const &fn)
 {
     return std::make_pair(name, mk_lambda(name, fn));
 }
@@ -317,13 +318,16 @@ public:
           end(params.end())
     {}
 
+    /// access required parameters list member, write result using
+    /// convert function to dst. \return this object to allow chained
+    /// calls like accessor.required(convertx, p1).required(converty, p2)
     template <typename T>
-    ListAccessor& required(void (*fn)(expr_ptr, T &dst), T &dst)
+    ListAccessor& required(void (*convert)(expr_ptr, T &dst), T &dst)
     {
         if (cur == end)
             throw cor::Error("Required param is absent");
 
-        fn(*cur++, dst);
+        convert(*cur++, dst);
         return *this;
     }
 
