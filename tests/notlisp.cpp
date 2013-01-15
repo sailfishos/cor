@@ -28,7 +28,9 @@ tf cor_notlisp_test("notlisp");
 
 enum test_ids {
     tid_noinput = 1,
-    tid_values,
+    tid_optional,
+    tid_required,
+    tid_types,
     tid_const,
     tid_wrong_expr,
     tid_simple_fn
@@ -49,7 +51,40 @@ void object::test<tid_noinput>()
 }
 
 template<> template<>
-void object::test<tid_values>()
+void object::test<tid_optional>()
+{
+    using namespace cor::notlisp;
+
+    env_ptr env(new Env({}));
+    Interpreter interpreter(env);
+    std::istringstream in("4");
+    cor::sexp::parse(in, interpreter);
+    ListAccessor res(interpreter.results());
+    expr_ptr e;
+    ensure_eq("there should be expr", res.optional(e), true);
+    ensure_eq("non-null expr", !!e, true);
+    ensure_eq("expr type", e->type(), Expr::Integer);
+    ensure_eq("expr type", (long)*e, 4);
+    ensure_eq("no expressions left", res.optional(e), false);
+}
+
+template<> template<>
+void object::test<tid_required>()
+{
+    using namespace cor::notlisp;
+
+    env_ptr env(new Env({}));
+    Interpreter interpreter(env);
+    std::istringstream in("4");
+    cor::sexp::parse(in, interpreter);
+    ListAccessor res(interpreter.results());
+    long i = 0;
+    res.required(to_long, i);
+    ensure_throws<Error>("No params left", [&res]() { res.required(); });
+}
+
+template<> template<>
+void object::test<tid_types>()
 {
     using namespace cor::notlisp;
 
@@ -65,8 +100,7 @@ void object::test<tid_values>()
     ensure_eq("double", a, 1.2);
     ensure_eq("int", b, 3);
     ensure_eq("string", c, "X");
-    ensure_throws<Error>
-        ("No more params", [&res]() {long d; res.required(to_long, d); });
+    ensure_throws<Error>("No more params", [&res]() { res.required(); });
 }
 
 template<> template<>
