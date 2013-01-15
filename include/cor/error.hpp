@@ -138,10 +138,14 @@ private:
 template <typename ... Args>
 std::string mk_error_message(std::string const &info, Args ...args)
 {
-    std::string res(info.size() * 2, 0);
+    auto len = info.size();
+    if (!len)
+        return info;
+
+    std::string res(len * 2, 0);
     int rc;
     while (res.size() < 1024 * 64) {
-        rc = snprintf(&res[0], res.size(), &info[0], args...);
+        rc = snprintf(&res[0], res.size(), info.c_str(), args...);
         if (rc >= 0 && (unsigned)rc < res.size()) {
             res.resize(rc);
             break;
