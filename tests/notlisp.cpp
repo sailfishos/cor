@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <tuple>
 #include <string>
 #include <sstream>
 #include <stdexcept>
@@ -29,7 +30,8 @@ enum test_ids {
     tid_noinput = 1,
     tid_values,
     tid_const,
-    tid_wrong_expr
+    tid_wrong_expr,
+    tid_simple_fn
 };
 
 template<> template<>
@@ -88,13 +90,63 @@ template<> template<>
 void object::test<tid_wrong_expr>()
 {
     using namespace cor::notlisp;
+    using cor::sexp::mk_parser;
 
     env_ptr env(new Env({}));
-    Interpreter interpreter(env);
-    std::istringstream in("()");
-    ensure_throws<cor::sexp::ErrorWrapper>(
-        "Non-executable should fail on evaluation",
-        [&in, &interpreter]() { cor::sexp::parse(in, interpreter); });
+    auto exec = [&env] (std::string const &data, size_t pos) {
+        std::istringstream in(data);
+        auto parser(mk_parser(in));
+        Interpreter interpreter(env);
+        auto check_position = [&in, pos](Error const &e) {
+            ensure_eq("correct position", in.tellg(), pos);
+        };
+        auto parse = [&parser, &interpreter]() {
+            parser(interpreter);
+        };
+
+        ensure_throws_verify<Error>(
+            "Non-executable should fail on evaluation",
+            parse, check_position);
+    };
+    std::vector<std::pair<std::string, size_t>> data =
+        {{"()", 2}, {"(e)", 3}};
+    for (auto &v : data)
+        exec(v.first, v.second);
+}
+
+template<> template<>
+void object::test<tid_simple_fn>()
+{
+    using namespace cor::notlisp;
+    using cor::sexp::mk_parser;
+
+    typedef std::function<void (ListAccessor &)> check_type;
+    typedef std::tuple<std::string, env_ptr, check_type> data_type;
+
+    auto exec = [] (data_type &data) {
+        std::istringstream in(std::get<0>(data));
+        auto parser(mk_parser(in));
+        Interpreter interpreter(std::get<1>(data));
+        parser(interpreter);
+        ListAccessor res(interpreter.results());
+        std::get<2>(data)(res);
+    };
+
+    lambda_type fn = [](env_ptr, expr_list_type &params) {
+        return mk_string("X");
+    };
+    check_type check_fn = [](ListAccessor &src) {
+        std::string s;
+        src.required(to_string, s);
+        ensure_eq("fn result", s, "X");
+    };
+    std::vector<data_type> data =
+        {std::make_tuple(
+                "(fn)",
+                mk_env({mk_record("fn", fn)}),
+                check_fn),
+        };
+    for (auto &v : data) exec(v);
 }
 
 }
