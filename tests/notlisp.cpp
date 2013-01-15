@@ -66,6 +66,7 @@ void object::test<tid_optional>()
     ensure_eq("expr type", e->type(), Expr::Integer);
     ensure_eq("expr type", (long)*e, 4);
     ensure_eq("no expressions left", res.optional(e), false);
+    ensure_eq("not has_more()", res.has_more(), false);
 }
 
 template<> template<>
@@ -161,18 +162,40 @@ void object::test<tid_simple_fn>()
     };
 
     lambda_type fn = [](env_ptr, expr_list_type &params) {
+        ListAccessor src(params);
+        ensure_eq("no fn params left", src.has_more(), false);
         return mk_string("X");
     };
     check_type check_fn = [](ListAccessor &src) {
         std::string s;
         src.required(to_string, s);
         ensure_eq("fn result", s, "X");
+        ensure_eq("no fn results left", src.has_more(), false);
     };
+
+    lambda_type fn1 = [](env_ptr, expr_list_type &params) {
+        std::string s;
+        ListAccessor src(params);
+        src.required(to_string, s);
+        ensure_eq("no fn1 params left", src.has_more(), false);
+        return mk_string(s + "B");
+    };
+    check_type check_fn1 = [](ListAccessor &src) {
+        std::string s;
+        src.required(to_string, s);
+        ensure_eq("fn result", s, "AB");
+        ensure_eq("no fn1 results left", src.has_more(), false);
+    };
+
     std::vector<data_type> data =
         {std::make_tuple(
                 "(fn)",
                 mk_env({mk_record("fn", fn)}),
                 check_fn),
+         std::make_tuple(
+             "(fn  \"A\")",
+             mk_env({mk_record("fn", fn1)}),
+             check_fn1)
         };
     for (auto &v : data) exec(v);
 }

@@ -338,6 +338,8 @@ public:
           end(params.end())
     {}
 
+    bool has_more() const { return cur != end; }
+
     expr_ptr required();
 
     /// access required parameters list member, write result using
@@ -349,12 +351,12 @@ public:
     template <typename ConsumerT>
     bool optional(ConsumerT fn)
     {
-        return (cur != end) ? fn(*cur++) : false;
+        return has_more() ? fn(*cur++) : false;
     }
 
     bool optional(expr_ptr &dst)
     {
-        if (cur == end)
+        if (!has_more())
             return false;
 
         dst = *cur++;
