@@ -40,6 +40,15 @@ namespace cor
 namespace notlisp
 {
 
+class Error : public cor::Error
+{
+public:
+    template <typename ... Args>
+    Error(std::string const &info, Args ... args)
+        : cor::Error(info, args...)
+    { }
+};
+
 class Expr;
 typedef std::shared_ptr<Expr> expr_ptr;
 typedef std::list<expr_ptr> expr_list_type;
@@ -331,7 +340,7 @@ public:
     ListAccessor& required(void (*convert)(expr_ptr, T &dst), T &dst)
     {
         if (cur == end)
-            throw cor::Error("Required param is absent");
+            throw Error("Required param is absent");
 
         convert(*cur++, dst);
         return *this;
@@ -371,7 +380,7 @@ void rest_casted(ListAccessor &src, FnT fn)
          [&fn](expr_ptr p) {
              auto res = std::dynamic_pointer_cast<T>(p);
              if (!res)
-                 throw cor::Error("Can't be casted");
+                 throw Error("Can't be casted");
              fn(res);
              return !!res;
          });
@@ -393,7 +402,7 @@ void rest(ListAccessor &src, ArgFnT arg, KeyFnT kwd_ard)
         }
     }
     if (k)
-        throw cor::Error("Orphaned keyword");
+        throw Error("Orphaned keyword");
 }
 
 template <typename ContainerT, typename ConvertT>
@@ -412,7 +421,7 @@ void push_rest_casted(ListAccessor &src, T &dst) {
     auto fn = [](expr_ptr from) {
         auto res = std::dynamic_pointer_cast<cast_type>(from);
         if (!res)
-            throw cor::Error("Can't be casted");
+            throw Error("Can't be casted");
         return res;
     };
     push_rest(src, dst, fn);

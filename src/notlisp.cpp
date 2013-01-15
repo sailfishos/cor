@@ -39,9 +39,9 @@ static void must_have_type(expr_ptr expr, Expr::Type t,
                            std::string const &failure_msg)
 {
     if (!expr)
-        throw cor::Error(failure_msg + ". Null expression");
+        throw Error(failure_msg + ". Null expression");
     if (expr->type() != t)
-        throw cor::Error
+        throw Error
             ((failure_msg + ". expr %s: need type %d, got %d").c_str(),
              expr->value().c_str(), t, expr->type());
 }
@@ -117,11 +117,11 @@ void Interpreter::on_list_end()
     auto &expr = *t.begin();
     auto p = eval(env, expr);
     if (!p)
-        throw cor::Error("Got null evaluating %s, expecting function",
+        throw Error("Got null evaluating %s, expecting function",
                          expr->value().c_str());
 
     if (p->type() != Expr::Function)
-        throw std::logic_error("Not a function");
+        throw Error("Not a function");
     t.pop_front();
     expr_ptr res;
     try {
