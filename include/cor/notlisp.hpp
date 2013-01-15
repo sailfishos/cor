@@ -71,6 +71,11 @@ public:
     dict_type dict;
 };
 
+static inline env_ptr mk_env(std::initializer_list<Env::item_type> symbols)
+{
+    return env_ptr(new Env(symbols));
+}
+
 class Expr
 {
 public:
