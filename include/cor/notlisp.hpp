@@ -132,14 +132,14 @@ std::basic_ostream<CharT> & operator <<
 (std::basic_ostream<CharT> &dst, Expr const &src)
 {
     switch (src.type()) {
-    case Expr::String: dst << "S:" << src.value(); break;
-    case Expr::Symbol: dst << "A:" << src.value(); break;
-    case Expr::Keyword: dst << "K:" << src.value(); break;
-    case Expr::Object: dst << "O:" << src.value(); break;
-    case Expr::Function: dst << "F:" << src.value(); break;
-    case Expr::Nil: dst << "N:" << src.value(); break;
-    case Expr::Integer: dst << "I:" << (long)src; break;
-    case Expr::Real: dst << "R:" << (double)src; break;
+    case Expr::String: dst << "\"" << src.value() << "\""; break;
+    case Expr::Symbol: dst << src.value(); break;
+    case Expr::Keyword: dst << ":" << src.value(); break;
+    case Expr::Object: dst << src.value(); break;
+    case Expr::Function: dst << src.value(); break;
+    case Expr::Nil: dst << "nil"; break;
+    case Expr::Integer: dst << (long)src; break;
+    case Expr::Real: dst << (double)src; break;
     }
     return dst;
 }
