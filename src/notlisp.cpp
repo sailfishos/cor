@@ -17,7 +17,7 @@ expr_ptr mk_keyword(std::string const &s)
 
 expr_ptr mk_nil()
 {
-    return mk_basic_expr<Expr::Nil>("");
+    return expr_ptr(new BasicExpr<Expr::Nil>());
 }
 
 expr_ptr mk_symbol(std::string const &s)

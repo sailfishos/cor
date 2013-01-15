@@ -76,6 +76,7 @@ public:
         Real
     };
 
+    Expr() : type_(Nil), s_(""), i_(0) {}
     Expr(std::string const &v, Type t) : type_(t), s_(v) {}
     Expr(int v) : type_(Integer), i_(v) {}
     Expr(long v) : type_(Integer), i_(v) {}
@@ -163,6 +164,15 @@ public:
     BasicExpr(std::string const &s) : Expr(s, T) {}
 protected:
     virtual expr_ptr do_eval(env_ptr, expr_ptr);
+};
+
+template <>
+class BasicExpr<Expr::Nil> : public Expr
+{
+public:
+    BasicExpr() : Expr() {}
+protected:
+    virtual expr_ptr do_eval(env_ptr, expr_ptr self) { return self; }
 };
 
 template <Expr::Type T>
