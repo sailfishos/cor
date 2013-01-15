@@ -35,13 +35,33 @@ expr_ptr eval(env_ptr env, expr_ptr src)
     return src->do_eval(env, src);
 }
 
-void to_string(expr_ptr expr, std::string &dst)
+static void must_have_type(expr_ptr expr, Expr::Type t,
+                           std::string const &failure_msg)
 {
     if (!expr)
-        throw cor::Error("to_string: Null");
-    if (expr->type() != Expr::String)
-        throw cor::Error("%s is not string", expr->value().c_str());
+        throw cor::Error(failure_msg + ". Null expression");
+    if (expr->type() != t)
+        throw cor::Error
+            ((failure_msg + ". expr %s: need type %d, got %d").c_str(),
+             expr->value().c_str(), t, expr->type());
+}
+
+void to_string(expr_ptr expr, std::string &dst)
+{
+    must_have_type(expr, Expr::String, "to_string");
     dst = expr->value();
+}
+
+void to_long(expr_ptr expr, long &dst)
+{
+    must_have_type(expr, Expr::Integer, "to_long");
+    dst = (long)*expr;
+}
+
+void to_double(expr_ptr expr, double &dst)
+{
+    must_have_type(expr, Expr::Real, "to_double");
+    dst = (double)*expr;
 }
 
 expr_ptr LambdaExpr::do_eval(env_ptr, expr_ptr self)

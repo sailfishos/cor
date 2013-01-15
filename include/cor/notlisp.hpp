@@ -240,6 +240,8 @@ private:
 expr_ptr mk_lambda(std::string const &name, lambda_type const &fn);
 
 void to_string(expr_ptr expr, std::string &dst);
+void to_long(expr_ptr expr, long &dst);
+void to_double(expr_ptr expr, double &dst);
 
 static inline Env::item_type mk_record
 (std::string const &name, lambda_type const &fn)
