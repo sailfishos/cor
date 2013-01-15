@@ -290,7 +290,8 @@ public:
     }
 
     void on_atom(std::string &&s) {
-        stack.top().push_back(convert_atom(std::move(s)));
+        auto v = convert_atom(std::move(s));
+        stack.top().push_back(eval(env, v));
     }
 
     void on_eof() {
