@@ -125,7 +125,7 @@ void Interpreter::on_list_end()
                          expr->value().c_str());
 
     if (p->type() != Expr::Function)
-        throw Error("Not a function");
+        throw Error("Not a function, type %d", p->type());
     t.pop_front();
     expr_ptr res;
     try {
