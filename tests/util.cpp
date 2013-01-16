@@ -28,7 +28,8 @@ tf cor_util_test("util");
 
 enum test_ids {
     tid_basic_handle = 1,
-    tid_move_handle
+    tid_close,
+    tid_move_handle,
 };
 
 class TestTraits
@@ -49,30 +50,58 @@ typedef cor::Handle<int, TestTraits> test_type;
 template<> template<>
 void object::test<tid_basic_handle>()
 {
-    TestTraits::c_ = 0;
-    while (0) {
+    int expected_c = 0;
+    do {
+        TestTraits::c_ = 0;
         test_type h(2);
-        ensure_eq("counting", TestTraits::c_, 1);
+        expected_c += 1;
+        ensure_eq("counting", TestTraits::c_, expected_c);
         ensure_eq("handle", h.value(), 2);
-    }
-    ensure_eq("zero counter", TestTraits::c_, 0);
+    } while (0);
+    expected_c -= 1;
+    ensure_eq("zero counter", TestTraits::c_, expected_c);
+}
+
+template<> template<>
+void object::test<tid_close>()
+{
+    int expected_c = 0;
+    do {
+        TestTraits::c_ = 0;
+        test_type h(17);
+        expected_c += 1;
+        ensure_eq("counting", TestTraits::c_, expected_c);
+        ensure_eq("handle", h.value(), 17);
+        h.close();
+        ensure_eq("handle after closing", h.value(), -1);
+        ensure_eq("invalid after closing", h.is_valid(), false);
+    } while (0);
+    expected_c -= 1;
+    ensure_eq("zero counter", TestTraits::c_, expected_c);
 }
 
 template<> template<>
 void object::test<tid_move_handle>()
 {
-    TestTraits::c_ = 0;
-    while (0) {
+    int expected_c = 0;
+    do {
+        TestTraits::c_ = 0;
         test_type h(2);
+        expected_c += 1;
         test_type h2(std::move(h));
-        ensure_eq("handle", h.value(), -1);
+        expected_c += 1;
+        ensure_eq("h2 ctor", TestTraits::c_, expected_c);
+        ensure_eq("invalidated handle #1", h.value(), -1);
         ensure_eq("moved handle", h2.value(), 2);
         test_type h3;
-        h3 = std::move(2);
-        ensure_eq("handle", h2.value(), -1);
+        expected_c += 1;
+        ensure_eq("h3 ctor", TestTraits::c_, expected_c);
+        h3 = std::move(h2);
+        ensure_eq("invalidated handle #2", h2.value(), -1);
         ensure_eq("moved handle", h3.value(), 2);
-    }
-    ensure_eq("zero counter", TestTraits::c_, 0);
+    } while (0);
+    expected_c -= 1;
+    ensure_eq("zero counter", TestTraits::c_, expected_c);
 }
 
 }
