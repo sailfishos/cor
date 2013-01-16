@@ -89,6 +89,18 @@ struct FdTraits
     int invalid_() const { return -1; }
 };
 
+template <typename T, T Invalid>
+struct GenericHandleTraits
+{
+    GenericHandleTraits(std::function<void (T)> close)
+        : close_impl_(close) {}
+    void close_(T v) { close_impl_(v); }
+    bool is_valid_(T v) const { return v != Invalid; }
+    T invalid_() const { return Invalid; }
+private:
+    std::function<void (T)> close_impl_;
+};
+
 template <typename T, typename TraitsT>
 class Handle : private TraitsT
 {
@@ -97,6 +109,8 @@ public:
 
     Handle() : v_(base_type::invalid_()) {}
     Handle(T v) : v_(v) {}
+    template <typename ... Args>
+    Handle(T v, Args ... args) : base_type(args...), v_(v) {}
     ~Handle() { close(); }
 
     Handle(Handle &&from)
@@ -112,11 +126,13 @@ public:
         return *this;
     }
 
-    bool is_valid() const { return is_valid_(v_); }
+    bool is_valid() const {
+        return base_type::is_valid_(v_);
+    }
 
     void close()
     {
-        if (base_type::is_valid_(v_)) {
+        if (is_valid()) {
             base_type::close_(v_);
             v_ = base_type::invalid_();
         }

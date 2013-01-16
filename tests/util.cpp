@@ -30,6 +30,7 @@ enum test_ids {
     tid_basic_handle = 1,
     tid_close,
     tid_move_handle,
+    tid_generic_handle
 };
 
 class TestTraits
@@ -102,6 +103,22 @@ void object::test<tid_move_handle>()
     } while (0);
     expected_c -= 1;
     ensure_eq("zero counter", TestTraits::c_, expected_c);
+}
+
+
+template<> template<>
+void object::test<tid_generic_handle>()
+{
+    using namespace cor;
+    typedef Handle<int, GenericHandleTraits<int, -1> > generic_test_type;
+    int counter = 1;
+    do {
+        generic_test_type h(13, [&counter](int v) { --counter; });
+        ensure_eq("valid", h.is_valid(), true);
+        ensure_eq("set correctly", h.value(), 13);
+        ensure_eq("counter is ok", counter, 1);
+    } while (0);
+    ensure_eq("closed once", counter, 0);
 }
 
 }
