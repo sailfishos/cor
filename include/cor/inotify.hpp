@@ -20,7 +20,7 @@ public:
 
     int fd() const
     {
-        return inotify_.fd;
+        return inotify_.value();
     }
 
     int read(void *dst, size_t max_len) const
@@ -32,7 +32,7 @@ private:
     Handle(Handle&);
     Handle & operator = (Handle&);
 
-    cor::Fd inotify_;
+    cor::FdHandle inotify_;
 };
 
 class Watch
