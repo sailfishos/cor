@@ -100,7 +100,7 @@ public:
      * @opts map to gather (item_name, value) association
      * @params container to gather parameters
      */
-    int parse(int argc, char const *argv[],
+    int parse(int argc, char const* const* argv,
               map_type &opts,
               std::vector<char const*> &params) const
     {
