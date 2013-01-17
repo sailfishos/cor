@@ -2,6 +2,10 @@
 #define _COR_UTIL_H_
 
 #include <string.h>
+#include <errno.h>
+
+/* MIN */
+#include <sys/param.h>
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
@@ -37,6 +41,23 @@ static inline int name_index(char const *name, char const *names[], size_t len)
           ++pos;
      }
      return res;
+}
+
+/** perform memcpy of maximum src_len bytes from src into dst + off no
+ * more then len bytes.
+ *
+ * \return actual number of copied bytes or negative on error
+ */
+static inline int memcpy_offset
+(char *dst, size_t len, size_t off, char const *src, size_t src_len)
+{
+    if (!dst || !src || off >= src_len)
+        return -EINVAL;
+
+    size_t actual_len = MIN(src_len - off, len + off);
+    if (actual_len)
+        memcpy(dst, &src[off], real_len);
+    return actual_len;
 }
 
 #endif // _COR_UTIL_H_
