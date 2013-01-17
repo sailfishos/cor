@@ -56,7 +56,7 @@ static inline int memcpy_offset
 
     size_t actual_len = MIN(src_len - off, len + off);
     if (actual_len)
-        memcpy(dst, &src[off], real_len);
+        memcpy(dst, &src[off], actual_len);
     return actual_len;
 }
 
