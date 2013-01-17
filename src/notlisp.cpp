@@ -111,6 +111,19 @@ expr_ptr default_atom_convert(std::string &&s)
     return res;
 }
 
+Interpreter::Interpreter(env_ptr env, atom_converter_type atom_converter)
+    : env(env),
+      stack({expr_list_type()}),
+      convert_atom(atom_converter)
+{
+}
+
+void Interpreter::on_atom(std::string &&s)
+{
+    auto v = convert_atom(std::move(s));
+    stack.top().push_back(eval(env, v));
+}
+
 void Interpreter::on_list_end()
 {
     auto &t = stack.top();
@@ -146,6 +159,15 @@ expr_list_type eval(env_ptr env, expr_list_type const &src)
                    std::back_inserter(res),
                    [env](expr_ptr p) { return eval(env, p); });
     return res;
+}
+
+bool ListAccessor::optional(expr_ptr &dst)
+{
+    if (!has_more())
+        return false;
+
+    dst = *cur++;
+    return true;
 }
 
 ListAccessor & operator >> (ListAccessor &src, expr_ptr dst)

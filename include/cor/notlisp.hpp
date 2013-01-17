@@ -282,13 +282,9 @@ class Interpreter
 {
 public:
     typedef std::function<expr_ptr (std::string &&)> atom_converter_type;
-    Interpreter(env_ptr env,
-                atom_converter_type atom_converter
-                = &cor::notlisp::default_atom_convert)
-        : env(env),
-          stack({expr_list_type()}),
-          convert_atom(atom_converter)
-    {}
+    Interpreter
+    (env_ptr env,
+     atom_converter_type atom_converter = &cor::notlisp::default_atom_convert);
 
     void on_list_begin()
     {
@@ -303,10 +299,7 @@ public:
         stack.top().push_back(mk_string(s));
     }
 
-    void on_atom(std::string &&s) {
-        auto v = convert_atom(std::move(s));
-        stack.top().push_back(eval(env, v));
-    }
+    void on_atom(std::string &&s);
 
     void on_eof() {
     }
@@ -354,14 +347,7 @@ public:
         return has_more() ? fn(*cur++) : false;
     }
 
-    bool optional(expr_ptr &dst)
-    {
-        if (!has_more())
-            return false;
-
-        dst = *cur++;
-        return true;
-    }
+    bool optional(expr_ptr &dst);
 
 private:
 
