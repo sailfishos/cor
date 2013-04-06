@@ -172,6 +172,56 @@ std::string concat(T head, Args ... tail)
 }
 
 
+template <typename T>
+class TaggedObject : public T
+{
+    typedef bool (TaggedObject<T>::*tag_t)() const;
+
+public:
+    template <typename ... Args>
+    TaggedObject(Args&&... args)
+        : T(args...)
+        , tag_(&TaggedObject<T>::is_tagged_storage_valid)
+    {}
+
+    bool is_tagged_storage_valid() const
+    {
+        return (tag_ == &TaggedObject<T>::is_tagged_storage_valid);
+    }
+
+private:
+    TaggedObject(TaggedObject const&);
+    TaggedObject operator =(TaggedObject const&);
+
+    tag_t tag_;
+};
+
+template <typename T, typename ... Args>
+intptr_t new_tagged_handle(Args... args)
+{
+    auto s = new TaggedObject<T>(args...);
+
+    if (!s->is_tagged_storage_valid())
+        throw Error("New handle is corrupted?");
+    return reinterpret_cast<intptr_t>(s);
+}
+
+template <typename T>
+T * tagged_handle_pointer(intptr_t h)
+{
+    auto s = reinterpret_cast<TaggedObject<T>*>(h);
+    return s->is_tagged_storage_valid() ? static_cast<T*>(s) : nullptr;
+}
+
+template <typename T>
+void delete_tagged_handle(intptr_t h)
+{
+    auto s = reinterpret_cast<TaggedObject<T>*>(h);
+    if (s->is_tagged_storage_valid())
+        delete s;
+}
+
+
 } // namespace cor
 
 #endif // _COR_UTIL_HPP_

@@ -30,7 +30,8 @@ enum test_ids {
     tid_basic_handle = 1,
     tid_close,
     tid_move_handle,
-    tid_generic_handle
+    tid_generic_handle,
+    tid_tagged_storage
 };
 
 class TestTraits
@@ -119,6 +120,98 @@ void object::test<tid_generic_handle>()
         ensure_eq("counter is ok", counter, 1);
     } while (0);
     ensure_eq("closed once", counter, 0);
+}
+
+struct TestTagged
+{
+    static int obj_count;
+    TestTagged(int v, std::string const &v2)
+        : i(v), s(v2) { ++obj_count; }
+
+    TestTagged(TestTagged &src)
+        : i(src.i), s(src.s) { ++obj_count; }
+
+    TestTagged(TestTagged &&src)
+        : i(src.i), s(src.s) {
+        src.i = -1;
+        src.s = "";
+        ++obj_count;
+    }
+
+    ~TestTagged() { --obj_count; }
+
+    int i;
+    std::string s;
+};
+
+struct TestTagged2 : public TestTagged
+{
+    TestTagged2() : TestTagged(7, "2nd") {}
+};
+
+int TestTagged::obj_count = 0;
+
+template<> template<>
+void object::test<tid_tagged_storage>()
+{
+    using namespace cor;
+    static const unsigned v1 = 33;
+    static const std::string v2 = "some string";
+
+    intptr_t h = new_tagged_handle<TestTagged>(v1, v2);
+    ensure("Not null on creation", h);
+    ensure_eq("Constructed", TestTagged::obj_count, 1);
+
+    TestTagged *p1 = tagged_handle_pointer<TestTagged>(h);
+    ensure("Not null", !!p1);
+
+    TestTagged2 *p2 = tagged_handle_pointer<TestTagged2>(h);
+    ensure("Null", !p2);
+
+    ensure_eq("V1 is initialized", p1->i, v1);
+    ensure_eq("V2 is initialized", p1->s, v2);
+
+    // copying/moving
+    intptr_t h2 = new_tagged_handle<TestTagged>(*p1);
+    ensure_eq("2nd is constructed", TestTagged::obj_count, 2);
+    ensure("Copy is not null on creation", h2);
+    TestTagged *p1_2 = tagged_handle_pointer<TestTagged>(h2);
+    ensure("Copy is not null", !!p1_2);
+
+    ensure_eq("Src V1 is initialized", p1->i, v1);
+    ensure_eq("Src V2 is initialized", p1->s, v2);
+
+    ensure_eq("V1 copy is ok", p1_2->i, p1->i);
+    ensure_eq("V2 copy is ok", p1_2->s, p1_2->s);
+
+    delete_tagged_handle<TestTagged>(h);
+    ensure_eq("Destructor was called", TestTagged::obj_count, 1);
+
+    delete_tagged_handle<TestTagged>(h2);
+    ensure_eq("2nd destructor was called", TestTagged::obj_count, 0);
+
+    // checking for derived and base class clashing
+    h = new_tagged_handle<TestTagged2>();
+    ensure("Not null on creation", h);
+    ensure_eq("2 is constructed", TestTagged::obj_count, 1);
+
+    p2 = tagged_handle_pointer<TestTagged2>(h);
+    ensure("2nd not null", !!p2);
+
+    p1 = tagged_handle_pointer<TestTagged>(h);
+    ensure("1st null", !p1);
+
+    ensure_eq("2nd: V1 is initialized", p2->i, 7);
+    ensure_eq("2nd: V2 is initialized", p2->s, "2nd");
+    ensure_eq("Destructor is not called yet", TestTagged::obj_count, 1);
+    // check it is not mistakenly deleted
+
+    delete_tagged_handle<TestTagged>(h);
+    ensure_eq("Check deleting by mistake", TestTagged::obj_count, 1);
+
+    delete_tagged_handle<TestTagged2>(h);
+    ensure_eq("Destructor was called", TestTagged::obj_count, 0);
+
 }
 
 }
