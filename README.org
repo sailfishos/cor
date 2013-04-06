@@ -1,0 +1,4 @@
+* cor
+
+Just another C++/C library, contains everything generic/useful can be
+shared between different apps/libraries
