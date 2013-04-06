@@ -2,6 +2,7 @@
 CMakeCache*
 CMakeFiles*
 cmake_install.cmake
+/install_manifest.txt
 *.o
 Makefile
 statefs
@@ -11,3 +12,5 @@ cscope*
 CTestTestfile.cmake
 /Testing/
 self_test.xml
+/cor.pc
+/src/libcor.so

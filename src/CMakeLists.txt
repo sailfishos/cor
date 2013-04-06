@@ -1,1 +1,2 @@
-add_library(cor STATIC notlisp.cpp mt.cpp)
+add_library(cor SHARED notlisp.cpp mt.cpp)
+install(TARGETS cor DESTINATION lib${LIB_SUFFIX})
