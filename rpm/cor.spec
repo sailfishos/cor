@@ -1,6 +1,6 @@
 Summary: Just another C++/C library
 Name: cor
-Version: 0.1.0
+Version: 0.1.1
 Release: 1
 License: LGPL21
 Group: Development/Liraries
@@ -11,6 +11,12 @@ BuildRequires: cmake >= 2.8
 %description
 Just another C++/C library. Contains useful utilities which are not a
 part of any other library :)
+
+%package devel
+Summary: cor headers etc.
+Group: System Environment/Libraries
+%description devel
+cor library header files etc.
 
 %prep
 %setup -q
@@ -29,6 +35,9 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %{_libdir}/libcor.so
+
+%files devel
+%defattr(-,root,root,-)
 %{_libdir}/pkgconfig/cor.pc
 %{_includedir}/cor/*.h
 %{_includedir}/cor/*.hpp
