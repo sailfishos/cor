@@ -14,3 +14,4 @@ CTestTestfile.cmake
 self_test.xml
 /cor.pc
 /src/libcor.so
+tut/doc/webgen/Makefile
