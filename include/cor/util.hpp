@@ -221,6 +221,62 @@ void delete_tagged_handle(intptr_t h)
         delete s;
 }
 
+/**
+ * get class member offset (type M) in the object of class T
+ *
+ * @param m is a class member pointer, smth. like &T::m
+ *
+ * @return member offset in the object
+ */
+template <typename T, typename M>
+size_t member_offset(M const T::* m)
+{
+    return reinterpret_cast<size_t>(&(((T const*)nullptr)->*m));
+}
+
+/**
+ * get class member offset (type M) in the object of class T
+ *
+ * @param m is a class member pointer, smth. like &T::m
+ *
+ * @return member offset in the object
+ */
+template <typename T, typename M>
+size_t member_offset(M T::* m)
+{
+    return reinterpret_cast<size_t>(&(((T*)nullptr)->*m));
+}
+
+/**
+ * return pointer to the object from pointer to the member
+ *
+ * @param p pointer to the member of the object of class T
+ * @param m class member pointer, smth. like &T::m
+ *
+ * @return pointer to containing object
+ */
+template <typename T, typename M>
+T *member_container(M *p, M T::*m)
+{
+    return reinterpret_cast<T*>(
+        (reinterpret_cast<char*>(p) - member_offset(m)));
+}
+
+/**
+ * return pointer to the object from pointer to the member
+ *
+ * @param p pointer to the member of the object of class T
+ * @param m class member pointer, smth. like &T::m
+ *
+ * @return pointer to containing object
+ */
+template <typename T, typename M>
+T const* member_container(M const* p, M const T::* m)
+{
+    return reinterpret_cast<T const*>(
+        (reinterpret_cast<char const*>(p) - member_offset(m)));
+}
+
 
 } // namespace cor
 
