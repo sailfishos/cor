@@ -84,14 +84,17 @@ public:
 
 struct FdTraits
 {
+    typedef int handle_type;
     void close_(int v) { ::close(v); }
     bool is_valid_(int v) const { return v >= 0; }
     int invalid_() const { return -1; }
 };
 
 template <typename T, T Invalid>
-struct GenericHandleTraits
+class GenericHandleTraits
 {
+public:
+    typedef T handle_type;
     GenericHandleTraits(std::function<void (T)> close)
         : close_impl_(close) {}
     void close_(T v) { close_impl_(v); }
@@ -101,55 +104,90 @@ private:
     std::function<void (T)> close_impl_;
 };
 
-template <typename T, typename TraitsT>
-class Handle : private TraitsT
-{
-    typedef TraitsT base_type;
-public:
+enum handle_option {
+    only_valid_handle,
+    allow_invalid_handle
+};
 
-    Handle() : v_(base_type::invalid_()) {}
-    Handle(T v) : v_(v) {}
+template <typename TraitsT>
+class Handle : protected TraitsT
+{
+public:
+    typedef TraitsT traits_type;
+    typedef typename TraitsT::handle_type handle_type;
+
+    Handle() : v_(traits_type::invalid_()) {}
+
+    Handle(handle_type v, handle_option option)
+        : v_((option == allow_invalid_handle) ? v : validate(v))
+    {}
+
+    Handle(handle_type v) : v_(v) {}
+
     template <typename ... Args>
-    Handle(T v, Args ... args) : base_type(args...), v_(v) {}
+    Handle(handle_type v, Args&&... args)
+        : traits_type(args...), v_(v)
+    {}
+
+    template <typename ... Args>
+    Handle(handle_type v, handle_option option, Args&&... args)
+        : traits_type(args...)
+        , v_((option == allow_invalid_handle) ? v : validate(v))
+    {}
+
     ~Handle() { close(); }
 
     Handle(Handle &&from)
         : v_(from.v_)
     {
-        from.v_ = base_type::invalid_();
+        from.v_ = traits_type::invalid_();
     }
 
     Handle & operator =(Handle &&from)
     {
         v_ = from.v_;
-        from.v_ = base_type::invalid_();
+        from.v_ = traits_type::invalid_();
         return *this;
     }
 
     bool is_valid() const {
-        return base_type::is_valid_(v_);
+        return traits_type::is_valid_(v_);
     }
 
     void close()
     {
         if (is_valid()) {
-            base_type::close_(v_);
-            v_ = base_type::invalid_();
+            traits_type::close_(v_);
+            v_ = traits_type::invalid_();
         }
     }
 
-    T value() const { return v_; }
-    T& ref() { return v_; }
-    T const& cref() const { return v_; }
+    handle_type value() const { return v_; }
+    handle_type& ref() { return v_; }
+    handle_type const& cref() const { return v_; }
+
+    void reset(handle_type v)
+    {
+        close();
+        v_ = v;
+    }
 
 private:
+
+    handle_type validate(handle_type h)
+    {
+        if (!traits_type::is_valid_(h))
+            throw cor::Error("Handle is not valid");
+        return h;
+    }
+
     Handle(Handle &);
     Handle & operator = (Handle &);
 
-    T v_;
+    handle_type v_;
 };
 
-typedef Handle<int, FdTraits> FdHandle;
+typedef Handle<FdTraits> FdHandle;
 
 static inline std::string concat(std::stringstream &s)
 {

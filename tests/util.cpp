@@ -28,6 +28,7 @@ tf cor_util_test("util");
 
 enum test_ids {
     tid_basic_handle = 1,
+    tid_handle_args,
     tid_close,
     tid_move_handle,
     tid_generic_handle,
@@ -37,17 +38,20 @@ enum test_ids {
 class TestTraits
 {
 public:
+    typedef int handle_type;
     TestTraits() { c_ += 1; }
+    TestTraits(int arg) { arg_ = arg; }
     void close_(int v) { c_ -= 1; }
     bool is_valid_(int v) const { return v >= 0; }
     int invalid_() const { return -1; }
 
     static int c_;
+    int arg_;
 };
 
 int TestTraits::c_ = 0;
 
-typedef cor::Handle<int, TestTraits> test_type;
+typedef cor::Handle<TestTraits> test_type;
 
 template<> template<>
 void object::test<tid_basic_handle>()
@@ -62,6 +66,27 @@ void object::test<tid_basic_handle>()
     } while (0);
     expected_c -= 1;
     ensure_eq("zero counter", TestTraits::c_, expected_c);
+
+    ensure_throws<cor::Error>
+        ("Throws on invalid handle"
+         , []() {
+            test_type h(-1, cor::only_valid_handle);
+        });
+}
+
+struct DerivedHandle : public test_type
+{
+    template <typename ... Args>
+    DerivedHandle(handle_type v, Args&&... args) : test_type(v, args...) {}
+    int get_arg() const { return this->arg_; }
+};
+
+template<> template<>
+void object::test<tid_handle_args>()
+{
+    DerivedHandle h(13, 31);
+    ensure_eq("handle", h.value(), 13);
+    ensure_eq("w", h.get_arg(), 31);
 }
 
 template<> template<>
@@ -111,7 +136,7 @@ template<> template<>
 void object::test<tid_generic_handle>()
 {
     using namespace cor;
-    typedef Handle<int, GenericHandleTraits<int, -1> > generic_test_type;
+    typedef Handle<GenericHandleTraits<int, -1> > generic_test_type;
     int counter = 1;
     do {
         generic_test_type h(13, [&counter](int v) { --counter; });

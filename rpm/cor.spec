@@ -1,6 +1,6 @@
 Summary: Just another C++/C library
 Name: cor
-Version: 0.1.1
+Version: 0.1.3
 Release: 1
 License: LGPL21
 Group: Development/Liraries
