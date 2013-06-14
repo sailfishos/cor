@@ -315,6 +315,27 @@ T const* member_container(M const* p, M const T::* m)
         (reinterpret_cast<char const*>(p) - member_offset(m)));
 }
 
+template <typename T>
+class ScopeExit
+{
+public:
+    ScopeExit(T&& fn) : fn_(std::move(fn)) {}
+    ScopeExit(ScopeExit &&src) : fn_(src.fn_) {}
+    ~ScopeExit() { fn_(); }
+private:
+    ScopeExit(ScopeExit const&);
+    ScopeExit& operator =(ScopeExit const&);
+    T fn_;
+};
+
+/**
+ * set function to be executed at the end of the scope to use RAII
+ * for unique use cases w/o creating specialized classes
+ *
+ * @param fn function to be executed at the end of the scope
+ */
+template <typename T>
+ScopeExit<T> on_scope_exit(T && fn) { return ScopeExit<T>(std::move(fn)); }
 
 } // namespace cor
 
