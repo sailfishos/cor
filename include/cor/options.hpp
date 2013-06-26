@@ -20,7 +20,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
+ *
  * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  */
 
@@ -53,24 +53,53 @@ public:
      * @opt_with_params set of item names has params
      * @leave_in_params set of item names should be also left in params
      */
-    OptParse(std::initializer_list<short_item_type> short_opts,
-             std::initializer_list<item_type> long_opts,
-             std::initializer_list<StringT> opt_with_params,
-             std::initializer_list<StringT> leave_in_params)
-        : short_opts_(short_opts),
-          long_opts_(long_opts),
-          opt_with_params_(opt_with_params),
-          leave_in_params_(leave_in_params)
+    OptParse(std::initializer_list<short_item_type> short_opts
+             , std::initializer_list<item_type> long_opts
+             , std::initializer_list<StringT> opt_with_params
+             , std::initializer_list<StringT> leave_in_params)
+        : short_opts_(short_opts)
+        , long_opts_(long_opts)
+        , opt_with_params_(opt_with_params)
+        , leave_in_params_(leave_in_params)
     { }
 
-    void show_help(std::ostream &out, char const *program_name,
-                   StringT const &usage_str = "") const
+    OptParse(std::initializer_list<short_item_type> short_opts,
+             std::initializer_list<item_type> long_opts,
+             std::initializer_list<StringT> opt_with_params)
+        : short_opts_(short_opts),
+          long_opts_(long_opts),
+          opt_with_params_(opt_with_params)
+    { }
+
+    OptParse(std::initializer_list<short_item_type> short_opts,
+             std::initializer_list<item_type> long_opts)
+        : short_opts_(short_opts),
+          long_opts_(long_opts)
+    { }
+
+    /**
+     * show help and usage information
+     *
+     * @param out output stream
+     * @param program_name the name of executable to display
+     * @param usage_str additional help shown before help for options
+     *
+     * @param show_usage should "Usage:" information be shown, can be
+     * useful when this help is shown additionally to main help
+     */
+    void show_help(std::ostream &out, char const *program_name
+                   , StringT const &usage_str = ""
+                   , bool show_usage = true) const
     {
-        if (usage_str.size()) {
-            out << "Usage: " << program_name << usage_str;
+        if (show_usage) {
+            if (usage_str.size()) {
+                out << "Usage: " << program_name << " " << usage_str;
+            } else {
+                out << "Usage: " << program_name << " [options]\n"
+                    << "\twhere [options] are:\n";
+            }
         } else {
-            out << "Usage: " << program_name << " [options]\n"
-                << "\twhere [options] are:\n";
+            out << usage_str;
         }
         std::map<StringT, std::pair<char, StringT> > grouped;
         for (auto p : short_opts_)
