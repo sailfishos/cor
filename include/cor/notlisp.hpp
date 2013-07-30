@@ -92,9 +92,9 @@ public:
 
     Expr() : type_(Nil), s_(""), i_(0) {}
     Expr(std::string const &v, Type t) : type_(t), s_(v) {}
-    Expr(int v) : type_(Integer), i_(v) {}
-    Expr(long v) : type_(Integer), i_(v) {}
-    Expr(double v) : type_(Real), r_(v) {}
+    Expr(int v) : type_(Integer), s_(""), i_(v) {}
+    Expr(long v) : type_(Integer), s_(""), i_(v) {}
+    Expr(double v) : type_(Real), s_(""), r_(v) {}
 
     virtual ~Expr() {}
 
