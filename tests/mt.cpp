@@ -19,28 +19,37 @@ typedef tf::object object;
 tf cor_mt_test("mt");
 
 enum test_ids {
-    tid_basic_future = 1
+    tid_basic_future_wake_after =  1,
+    tid_basic_future_wake_before
 };
 
 template<> template<>
-void object::test<tid_basic_future>()
+void object::test<tid_basic_future_wake_after>()
 {
     cor::Future f;
-    int nr = 0;
-    std::mutex m;
-    std::unique_lock<std::mutex> l(m);
-    std::thread t = std::thread(f.wrap([&nr, &m]() {
-                std::lock_guard<std::mutex> l(m);
-                nr = 2;
-            }));
+    enum {
+        initial,
+        before_wake,
+        after_wake
+    } stage = initial;
+    auto before = [&stage]() { stage = before_wake; };
+    auto after = [&stage]() { stage = after_wake; };
+    std::thread t = std::thread(f.wrap(before, after));
     auto join = cor::on_scope_exit([&t](){t.join();});
-    nr = 3;
-    ::usleep(50);
-    ensure_eq("Thread should not be started yet", nr, 3);
-    l.unlock();
-    auto res = f.wait(std::chrono::milliseconds(10000));
+    for (int i = 0; stage != after_wake; ++i) {
+        ::usleep(10);
+        if (i == 100000)
+            fail("Waiting too long for wake thread to exit");
+    }
+
+    auto res = f.wait(std::chrono::milliseconds(5000));
     ensure_ne("No timeout", (int)res, (int)std::cv_status::timeout);
-    ensure_eq("Should wait for future to be completed", nr, 2);
+}
+
+template<> template<>
+void object::test<tid_basic_future_wake_before>()
+{
+    // TODO
 }
 
 }

@@ -66,22 +66,26 @@ struct NoLock
 };
 
 /// Condition variables are frequently used for a simple pattern with
-/// a single mutex. Class wraps this logic
+/// a single mutex. Class wraps this logic. Object is created by one
+/// who is waiting
 class BasicCondition
 {
 public:
-    BasicCondition() : mutex_(), done_() {}
+    BasicCondition() : awake_(false) {}
 
     template<class Rep, class Period>
     std::cv_status wait(std::chrono::duration<Rep, Period> const& rel_time)
     {
-        std::unique_lock<std::mutex> lock(mutex_);
-        return done_.wait_for(lock, rel_time);
+        std::unique_lock<std::mutex> lock_(mutex_);
+        return (awake_
+                ? std::cv_status::no_timeout
+                : done_.wait_for(lock_, rel_time));
     }
 
     void done()
     {
         std::lock_guard<std::mutex> lock(mutex_);
+        awake_ = true;
         done_.notify_one();
     }
 
@@ -91,6 +95,7 @@ private:
 
     std::mutex mutex_;
     std::condition_variable done_;
+    bool awake_;
 };
 
 
@@ -115,9 +120,24 @@ public:
     template <typename ExecutableT>
     std::function<void()> wrap(ExecutableT fn)
     {
+        return wrap(fn, [](){});
+    }
+
+    template <typename BeforeT, typename AfterT>
+    std::function<void()> wrap(BeforeT before, AfterT after)
+    {
         auto c = cond;
-        return [c, fn]() {
-            fn();
+        return [c, before, after]() {
+            before();
+            c->done();
+            after();
+        };
+    }
+
+    std::function<void()> waker()
+    {
+        auto c = cond;
+        return [c]() {
             c->done();
         };
     }
