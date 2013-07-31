@@ -25,7 +25,7 @@ cor library header files etc.
 %setup -q
 
 %build
-%cmake
+%cmake -DCOR_VERSION=%{version}
 make %{?jobs:-j%jobs}
 
 %install
