@@ -63,6 +63,7 @@ public:
     { }
 
     Backtrace(Backtrace const &src)
+        : count_(0), symbols(nullptr)
     {
         count_ = src.count_;
         std::copy(&src.frames[0], &src.frames[count_], frames.begin());
