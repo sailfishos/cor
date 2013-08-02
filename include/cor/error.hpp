@@ -58,17 +58,17 @@ class Backtrace
 {
 public:
     Backtrace()
-        : count(::backtrace(&frames[0], frames.size())),
-          symbols(0)
+        : count_(::backtrace(&frames[0], frames.size())),
+          symbols(nullptr)
     { }
 
     Backtrace(Backtrace const &src)
     {
-        count = src.count;
-        std::copy(&src.frames[0], &src.frames[count], frames.begin());
+        count_ = src.count_;
+        std::copy(&src.frames[0], &src.frames[count_], frames.begin());
         if (src.symbols) {
-            symbols = (const char**)calloc(src.count, sizeof(symbols[0]));
-            std::copy(&src.symbols[0], &src.symbols[count], &symbols[0]);
+            symbols = (const char**)calloc(src.count_, sizeof(symbols[0]));
+            std::copy(&src.symbols[0], &src.symbols[count_], &symbols[0]);
         }
     }
 
@@ -87,18 +87,18 @@ public:
     const char **end() const
     {
         update_symbols();
-        return &symbols[count];
+        return &symbols[count_];
     }
 
     char const* at(size_t index) const
     {
         update_symbols();
-        return (index < count) ? symbols[index] : "???";
+        return (index < count_) ? symbols[index] : "???";
     }
 
     bool dladdr(size_t index, Dl_info &info) const
     {
-        return (index < count) && (::dladdr(frames[index], &info) != 0);
+        return (index < count_) && (::dladdr(frames[index], &info) != 0);
     }
 
     std::string name(size_t index) const
@@ -112,6 +112,11 @@ public:
         return p ? std::string(p.get()) : std::string(at(index));
     }
 
+    size_t size() const
+    {
+        return count_;
+    }
+
 private:
 
     void update_symbols() const
@@ -120,17 +125,18 @@ private:
             return;
 
         symbols = const_cast<char const**>
-            (backtrace_symbols(&frames[0], count));
+            (backtrace_symbols(&frames[0], count_));
 
         if (!symbols) {
             symbols = static_cast<char const**>
                 (::calloc(1, sizeof(symbols[0])));
             symbols[0] = "?";
+            count_ = 1;
         }
     }
 
     std::array<void*, Frames> frames;
-    size_t count;
+    mutable size_t count_;
 
     mutable char const** symbols;
 };
