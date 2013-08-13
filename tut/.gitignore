@@ -1,4 +1,0 @@
-.waf*
-/build/
-/.lock*
-self_test.xml

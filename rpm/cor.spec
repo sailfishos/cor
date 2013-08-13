@@ -7,6 +7,7 @@ Group: Development/Liraries
 URL: https://github.com/deztructor/cor
 Source0: %{name}-%{version}.tar.bz2
 BuildRequires: cmake >= 2.8
+BuildRequires: pkgconfig(tut) >= 0.0.1
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 

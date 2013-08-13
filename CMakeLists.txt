@@ -27,10 +27,6 @@ INCLUDE_DIRECTORIES(
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-INCLUDE_DIRECTORIES(
-  ${CMAKE_CURRENT_SOURCE_DIR}/tut/include
-)
-
 set(prefix ${CMAKE_INSTALL_PREFIX})
 configure_file(cor.pc.in cor.pc @ONLY)
 install(FILES cor.pc DESTINATION lib${LIB_SUFFIX}/pkgconfig)
