@@ -5,13 +5,16 @@ INCLUDE_DIRECTORIES(${TUT_INCLUDES})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
 
-add_executable(test_cor
-  main.cpp options.cpp util.cpp sexp.cpp notlisp.cpp mt.cpp error.cpp
-)
+set(COR_TESTS options util sexp notlisp mt error)
 
-target_link_libraries(test_cor
-  cor
-  ${CMAKE_THREAD_LIBS_INIT}
-)
+MACRO(COR_TEST _name)
+  set(_exe_name test_${_name})
+  add_executable(${_exe_name} EXCLUDE_FROM_ALL main.cpp ${_name}.cpp)
+  target_link_libraries(${_exe_name} cor ${CMAKE_THREAD_LIBS_INIT})
+  add_test(${_exe_name} ${_exe_name})
+  add_dependencies(check ${_exe_name})
+ENDMACRO(COR_TEST)
 
-add_test(test "./test_cor")
+foreach(t ${COR_TESTS})
+  COR_TEST(${t})
+endforeach(t)
