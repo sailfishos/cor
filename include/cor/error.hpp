@@ -21,7 +21,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
+ *
  * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  */
 
@@ -36,10 +36,11 @@
 #include <stdexcept>
 #include <iostream>
 #include <memory>
+#include <unistd.h>
+#include <sys/mman.h>
 
 namespace cor
 {
-
 
 template <typename T>
 std::unique_ptr<T, void (*)(void*)> mk_cmem_handle(T *from)
@@ -50,10 +51,24 @@ std::unique_ptr<T, void (*)(void*)> mk_cmem_handle(T *from)
 template <typename T>
 std::unique_ptr<T, void (*)(void*)> mk_cmem_handle()
 {
-    return mk_cmem_handle((char*)0);
+    return mk_cmem_handle<T>(nullptr);
 }
 
-template <int Frames>
+static inline bool is_address_valid(void *p)
+{
+    bool res = false;
+    int fd[2];
+    if (pipe(fd) >= 0) {
+        if (write(fd[1], p, 128) > 0)
+            res = true;
+
+        close(fd[0]);
+        close(fd[1]);
+    }
+    return res;
+}
+
+template <size_t Frames>
 class Backtrace
 {
 public:
@@ -106,7 +121,7 @@ public:
     {
         Dl_info info;
         int status = -1;
-        auto p(mk_cmem_handle<char>());
+        auto p = mk_cmem_handle<char>();
         if (dladdr(index, info) && info.dli_sname)
             p.reset(abi::__cxa_demangle(info.dli_sname, NULL, 0, &status));
 
@@ -142,6 +157,15 @@ private:
     mutable char const** symbols;
 };
 
+template <typename T, size_t N>
+std::basic_ostream<T>& operator <<
+(std::basic_ostream<T> &dst, Backtrace<N> const &src)
+{
+    for (size_t i = 0; i < src.size(); ++i)
+        dst << i << ": " << src.name(i) << std::endl;
+    return dst;
+}
+
 template <typename ... Args>
 std::string mk_error_message(std::string const &info, Args ...args)
 {
@@ -173,13 +197,9 @@ public:
 
     virtual void print_trace() const
     {
-        auto pr = [](char const *s) {
-            std::cerr << s << std::endl;
-        };
-        std::for_each(trace.begin(), trace.end(), pr);
+        std::cerr << trace;
     }
 
-private:
     Backtrace<30> trace;
 };
 
