@@ -337,6 +337,81 @@ private:
 template <typename T>
 ScopeExit<T> on_scope_exit(T && fn) { return ScopeExit<T>(std::move(fn)); }
 
+/**
+ * split string to parts by borders defined by any of provided symbols
+ *
+ * @param src source string
+ * @param symbols symbols used as a separators
+ * @param dst destination iterator
+ */
+template <class OutputIterator>
+void split(std::string const& src
+           , std::string const &symbols
+           , OutputIterator dst)
+{
+    size_t begin = 0, end = 0, len = src.size();
+    auto next = [&src, symbols, &begin]() {
+        return src.find_first_of(symbols, begin);
+    };
+    for (end = next(); end != std::string::npos; end = next()) {
+        *dst = src.substr(begin, end - begin);
+        begin = end + 1;
+        if (begin >= len)
+            break;
+    }
+    if (begin != end)
+        *dst = src.substr(begin, end - begin);
+}
+
+/**
+ * join strings from input range [begin, end) using provided separator
+ *
+ * @param begin begin of the range
+ * @param end end of the range
+ * @param sep separator put between joined parts
+ *
+ * @return joined string
+ */
+template <class InIter>
+std::string join(InIter begin, InIter end, std::string const &sep)
+{
+    if (begin == end)
+        return "";
+
+    typedef decltype(*begin) ValueT;
+    size_t len = 0;
+    size_t count = 0;
+    auto gather_info = [&len, &count](ValueT &v) {
+        ++count;
+        len += v.size();
+    };
+    std::for_each(begin, end, gather_info);
+    std::string res;
+    res.reserve(len + (count * sep.size()));
+
+    res.append(*begin);
+     auto insert_following = [&res, &sep](ValueT &v) {
+        res.append(sep);
+        res.append(v);
+    };
+    std::for_each(++begin, end, insert_following);
+    return res;
+}
+
+/**
+ * join all strings from container using provided separator
+ *
+ * @param src source container
+ * @param sep separator put between joined parts
+ *
+ * @return resulting string
+ */
+template <class ContainerT>
+std::string join(ContainerT const&src, std::string const &sep)
+{
+    return join(std::begin(src), std::end(src), sep);
+}
+
 } // namespace cor
 
 #endif // _COR_UTIL_HPP_

@@ -8,6 +8,8 @@
 
 #include <string>
 #include <stdexcept>
+#include <list>
+#include <array>
 
 using std::string;
 using std::runtime_error;
@@ -32,7 +34,9 @@ enum test_ids {
     tid_close,
     tid_move_handle,
     tid_generic_handle,
-    tid_tagged_storage
+    tid_tagged_storage,
+    tid_string_join,
+    tid_string_split
 };
 
 class TestTraits
@@ -237,6 +241,96 @@ void object::test<tid_tagged_storage>()
     delete_tagged_handle<TestTagged2>(h);
     ensure_eq("Destructor was called", TestTagged::obj_count, 0);
 
+}
+
+template<> template<>
+void object::test<tid_string_join>()
+{
+    using cor::join;
+    std::list<std::string> src{"a", "bc", "d"};
+    auto res = join(src.begin(), src.end(), "");
+    ensure_eq("simple join using empty symbol", res, "abcd");
+    res = join(src.begin(), src.end(), ".");
+    ensure_eq("join using one symbol", res, "a.bc.d");
+    res = join(src.begin(), src.end(), "<>");
+    ensure_eq("join using 2 symbols", res, "a<>bc<>d");
+
+    res = join(src, ".");
+    ensure_eq("join container", res, "a.bc.d");
+
+    std::list<std::string> empty_src;
+    res = join(empty_src, ".");
+    ensure_eq("join empty container", res, "");
+
+    std::list<std::string> src2{"", ""};
+    res = join(src2, ".");
+    ensure_eq("join empty strings", res, ".");
+
+    std::array<std::string, 2> arr{{"a", "c"}};
+    res = join(arr, "b");
+    ensure_eq("join array", res, "abc");
+}
+
+template <class T>
+bool operator == (std::list<T> const &p1, std::list<T> const &p2)
+{
+    auto b1 = std::begin(p1);
+    auto b2 = std::begin(p2);
+    auto e1 = std::end(p1);
+    auto e2 = std::end(p2);
+    for (; b1 != e1; ++b1, ++b2) {
+        if (b2 == e2)
+            return false;
+
+        if (*b1 != *b2)
+            return false;
+    }
+    return (b2 == e2);
+}
+
+template <class CharT, class T>
+std::basic_ostream<CharT>& operator <<
+(std::basic_ostream<CharT> &dst, std::list<T> const &src)
+{
+    dst << "(";
+    for (auto v : src) {
+        dst << " '" << v << "'";
+    }
+    dst << ")";
+    return dst;
+}
+
+template<> template<>
+void object::test<tid_string_split>()
+{
+    using cor::split;
+    typedef std::list<std::string> dst_type;
+
+    dst_type dst;
+    split("a.b", ".", std::back_inserter(dst));
+    dst_type expected{"a", "b"};
+    ensure_eq("basic split", dst, expected);
+
+    dst.clear();
+    split(".", ".", std::back_inserter(dst));
+    dst_type expected0{"", ""};
+    ensure_eq("split 2 empty parts", dst, expected0);
+
+    dst.clear();
+    split("a.b/c", "/.", std::back_inserter(dst));
+    dst_type expected2{"a", "b", "c"};
+    ensure_eq("split using 2 symbols", dst, expected2);
+
+    dst.clear();
+    split("a.b/c-", "/.-", std::back_inserter(dst));
+    ensure_eq("split: 3 symbols and empty tail", dst
+              , dst_type{"a", "b", "c", ""});
+
+    dst.clear();
+    split("", ".", std::back_inserter(dst));
+    dst_type expected4{""};
+    ensure_eq("empty string", dst, dst_type{""});
+    
 }
 
 }
