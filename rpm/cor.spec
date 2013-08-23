@@ -28,7 +28,7 @@ cor library header files etc.
 %build
 %cmake -DCOR_VERSION=%{version}
 make %{?jobs:-j%jobs}
-#make %{?jobs:-j%jobs} check
+LD_LIBRARY_PATH=./src:$LD_LIBRARY_PATH make %{?jobs:-j%jobs} check
 
 %install
 rm -rf $RPM_BUILD_ROOT
