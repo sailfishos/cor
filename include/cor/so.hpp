@@ -28,6 +28,7 @@
 
 #include <dlfcn.h>
 #include <string>
+#include <iostream>
 
 namespace cor
 {
@@ -37,12 +38,13 @@ class SharedLib
 public:
     SharedLib(std::string const &name, int flag)
         : h(dlopen(name.c_str(), flag))
-    {}
+        , name_(name)
+    {
+    }
 
     SharedLib(SharedLib &&from)
         : h(from.h)
     {
-        from.h = 0;
     }
 
     virtual ~SharedLib()
@@ -77,12 +79,18 @@ public:
             : nullptr;
     }
 
+    std::string name() const
+    {
+        return name_;
+    }
+
 private:
 
-    SharedLib(SharedLib &);
-
+    SharedLib(SharedLib const&);
+    SharedLib & operator =(SharedLib const&);
 
     void *h;
+    std::string name_;
 };
 
 } // cor
