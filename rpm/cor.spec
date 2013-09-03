@@ -28,7 +28,11 @@ cor library header files etc.
 %build
 %cmake -DCOR_VERSION=%{version}
 make %{?jobs:-j%jobs}
-LD_LIBRARY_PATH=./src:$LD_LIBRARY_PATH make %{?jobs:-j%jobs} check
+
+%check
+# for some reason in obs env library linked by full path can't be found
+# so, adding it to LD_LIBRARY_PATH
+LD_LIBRARY_PATH=../src make %{?jobs:-j%jobs} check
 
 %install
 rm -rf $RPM_BUILD_ROOT

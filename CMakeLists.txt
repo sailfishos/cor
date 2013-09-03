@@ -38,8 +38,5 @@ install(FILES cor.pc DESTINATION lib${LIB_SUFFIX}/pkgconfig)
 
 install(DIRECTORY include/cor DESTINATION include FILES_MATCHING REGEX "\\.hp?p?$")
 
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
-
 add_subdirectory(src)
-enable_testing()
 add_subdirectory(tests)
