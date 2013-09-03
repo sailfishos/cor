@@ -227,6 +227,9 @@ public:
         return (tag_ == &TaggedObject<T>::is_tagged_storage_valid);
     }
 
+    void invalidate() {
+        tag_ = nullptr;
+    }
 private:
     TaggedObject(TaggedObject const&);
     TaggedObject operator =(TaggedObject const&);
@@ -255,8 +258,10 @@ template <typename T>
 void delete_tagged_handle(intptr_t h)
 {
     auto s = reinterpret_cast<TaggedObject<T>*>(h);
-    if (s->is_tagged_storage_valid())
+    if (s->is_tagged_storage_valid()) {
+        s->invalidate();
         delete s;
+    }
 }
 
 /**
