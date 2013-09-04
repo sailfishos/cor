@@ -32,13 +32,14 @@ void object::test<tid_error_dump>()
 {
     using namespace cor;
     size_t depth1, depth2;
-    std::list<std::string> traces1;
+    std::list<std::string> traces1, traces2;
     try {
         fn1();
     } catch (cor::Error const &e) {
         depth1 = e.trace.end() - e.trace.begin();
         std::for_each(e.trace.begin(), e.trace.end()
-                      , [&](char const *p) {
+                      , [&traces1](char const *p) {
+                          std::cerr << "tb1: " << p << std::endl;
                           traces1.push_back(p);
                       });
     }
@@ -46,8 +47,23 @@ void object::test<tid_error_dump>()
         fn2();
     } catch (cor::Error const &e) {
         depth2 = e.trace.end() - e.trace.begin();
+        std::for_each(e.trace.begin(), e.trace.end()
+                      , [&traces2](char const *p) {
+                          std::cerr << "tb2: " << p << std::endl;
+                          traces2.push_back(p);
+                      });
     }
-    ensure_eq("Depth difference", depth1 - depth2, 1);
+    auto it1 = traces1.begin();
+    auto it2 = traces2.begin();
+    size_t depth = 0;
+    for (;it1 != traces1.end() && it2 != traces2.end();
+         ++it2, ++it1) {
+        if (*it1 != *it2)
+            break;
+        ++depth;
+    };
+    // 1) Backtrace 2) Error 3) fn3 4) fn2
+    ensure_eq("Backtrace is different after 4 levels", depth, 4);
 }
 
 }
