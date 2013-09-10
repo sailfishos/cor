@@ -39,8 +39,12 @@ public:
         WLock(Mutex const &m);
         WLock(WLock &&from);
         ~WLock();
+
         void unlock();
     private:
+        WLock(WLock const &);
+        WLock& operator =(WLock const &);
+
         Mutex const &m_;
         bool is_locked_;
     };
