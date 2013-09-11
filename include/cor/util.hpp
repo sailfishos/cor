@@ -417,6 +417,149 @@ std::string join(ContainerT const&src, std::string const &sep)
     return join(std::begin(src), std::end(src), sep);
 }
 
+template <size_t N, size_t P>
+struct TupleSelector
+{
+
+    static const size_t size = N;
+    static const size_t pos = P - 1;
+
+    typedef TupleSelector<N, P + 1> next_type;
+    constexpr next_type next() const { return next_type(); }
+
+    template <typename ... Args>
+    typename std::tuple_element<pos, std::tuple<Args...> >::type const &
+    get(std::tuple<Args...> const &v) const
+    {
+        return std::get<pos>(v);
+    }
+
+    template <typename ... Args>
+    typename std::tuple_element<pos, std::tuple<Args...> >::type &
+    get(std::tuple<Args...> &v) const
+    {
+        return std::get<pos>(v);
+    }
+};
+
+
+template <size_t N> struct TupleSelector<N, N>
+{
+
+    static const size_t size = N;
+    static const size_t pos = N - 1;
+
+    template <typename ... Args>
+    typename std::tuple_element<pos, std::tuple<Args...> >::type const &
+    get(std::tuple<Args...> const &v) const
+    {
+        return std::get<pos>(v);
+    }
+
+    template <typename ... Args>
+    typename std::tuple_element<pos, std::tuple<Args...> >::type &
+    get(std::tuple<Args...> &v) const
+    {
+        return std::get<pos>(v);
+    }
+};
+
+template <typename ... Args>
+TupleSelector<std::tuple_size<std::tuple<Args...> >::value, 1>
+selector(std::tuple<Args...> const &)
+{
+    static const size_t N = std::tuple_size<std::tuple<Args...> >::value;
+    TupleSelector<N, 1> res;
+    return res;
+}
+
+template <typename ... Args>
+struct Operations
+{
+    typedef std::tuple<Args...> tuple_type;
+    typedef std::tuple<Args...> & tuple_ref;
+    typedef std::tuple<Args...> const& tuple_cref;
+
+    template <size_t N, typename ActionsT>
+    static void apply_if_changed
+    (tuple_cref before, tuple_cref current, ActionsT const &actions
+     , TupleSelector<N, N> const &selector)
+    {
+        apply_if_changed_(before, current, actions, selector);
+    }
+
+    template <size_t N, size_t P, typename ActionsT>
+    static void apply_if_changed
+    (tuple_cref before, tuple_cref current, ActionsT const &actions
+     , TupleSelector<N, P> const &selector)
+    {
+        apply_if_changed_(before, current, actions, selector);
+        apply_if_changed(before, current, actions, selector.next());
+    }
+
+    template <size_t N, typename ActionsT>
+    static void copy_apply_if_changed
+    (tuple_ref values, tuple_cref current, ActionsT const &actions
+     , TupleSelector<N, N> const &selector)
+    {
+        copy_apply_if_changed_(values, current, actions, selector);
+    }
+
+    template <size_t N, size_t P, typename ActionsT>
+    static void copy_apply_if_changed
+    (tuple_ref values, tuple_cref current, ActionsT const &actions
+     , TupleSelector<N, P> const &selector)
+    {
+        copy_apply_if_changed_(values, current, actions, selector);
+        copy_apply_if_changed(values, current, actions, selector.next());
+    }
+
+private:
+
+    template <size_t N, size_t P, typename ActionsT>
+    static void apply_if_changed_
+    (tuple_cref before, tuple_cref current, ActionsT const &actions
+     , TupleSelector<N, P> const &selector)
+    {
+        auto const &v1 = selector.get(before);
+        auto const &v2 = selector.get(current);
+        if (v2 != v1)
+            std::get<selector.pos>(actions)(v2);
+    }
+
+    template <size_t N, size_t P, typename ActionsT>
+    static void copy_apply_if_changed_
+    (tuple_ref values, tuple_cref current, ActionsT const &actions
+     , TupleSelector<N, P> const &selector)
+    {
+        auto &v1 = selector.get(values);
+        auto const &v2 = selector.get(current);
+        if (v2 != v1) {
+            std::get<selector.pos>(actions)(v2);
+            v1 = v2;
+        }
+    }
+
+};
+
+template <typename ActionsT, typename ...Args>
+void apply_if_changed(std::tuple<Args...> const &before
+                      , std::tuple<Args...> const &current
+                      , ActionsT const &actions)
+{
+    Operations<Args...>::template
+        apply_if_changed<>(before, current, actions, selector(before));
+}
+
+template <typename ActionsT, typename ...Args>
+void copy_apply_if_changed(std::tuple<Args...> &values
+                           , std::tuple<Args...> const &current
+                           , ActionsT const &actions)
+{
+    Operations<Args...>::template
+        copy_apply_if_changed<>(values, current, actions, selector(values));
+}
+
 } // namespace cor
 
 #endif // _COR_UTIL_HPP_

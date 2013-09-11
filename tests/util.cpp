@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <list>
 #include <array>
+#include <sstream>
 
 using std::string;
 using std::runtime_error;
@@ -36,7 +37,8 @@ enum test_ids {
     tid_generic_handle,
     tid_tagged_storage,
     tid_string_join,
-    tid_string_split
+    tid_string_split,
+    tid_tuple
 };
 
 class TestTraits
@@ -330,6 +332,91 @@ void object::test<tid_string_split>()
     split("", ".", std::back_inserter(dst));
     dst_type expected4{""};
     ensure_eq("empty string", dst, dst_type{""});
+    
+}
+
+template <size_t N, class CharT, class ... Args>
+void out_tuple(std::basic_ostream<CharT> &dst
+               , std::tuple<Args...> const &src
+               , cor::TupleSelector<N, N> const &selector)
+{
+    dst << selector.get(src);
+}
+
+template <size_t N, size_t P, class CharT, class ... Args>
+void out_tuple(std::basic_ostream<CharT> &dst
+               , std::tuple<Args...> const &src
+               , cor::TupleSelector<N, P> const &selector)
+{
+    dst << selector.get(src) << ", ";
+    out_tuple(dst, src, selector.next());
+}
+
+template <class CharT, class ... Args>
+std::basic_ostream<CharT>& operator <<
+(std::basic_ostream<CharT> &dst, std::tuple<Args...> const &src)
+{
+    dst << "(";
+    out_tuple(dst, src, cor::selector(src));
+    dst << ")";
+    return dst;
+}
+
+template<> template<>
+void object::test<tid_tuple>()
+{
+    typedef std::tuple<int> t1_type;
+    using cor::apply_if_changed;
+    t1_type v1{1}, v2{1};
+    auto actions1 = std::make_tuple([](int) {fail("1");});
+    apply_if_changed(v1, v2, actions1);
+
+    t1_type v3{3};
+    int res1 = 0;
+    auto set_res1 = [&res1](int v) { res1 = v; };
+    auto actions2 = std::make_tuple(set_res1);
+    apply_if_changed(v1, v3, actions2);
+    ensure_eq("function was called", res1, std::get<0>(v3));
+    ensure_ne("unchaged v1 and v3", v1, v3);
+
+    typedef std::tuple<std::string, int> t2_type;
+    t2_type si1{"same", 6}, si2{"same", 6};
+    auto a1_si = std::make_tuple
+        ([](std::string const&) {fail("a1_si 1");},
+         [](int) {fail("a1_si 2");});
+    apply_if_changed(si1, si2, a1_si);
+
+    t2_type si3{"other", 6};
+    std::string s("x");
+    auto set_s = [&s](std::string const &v) { s = v;};
+    auto a2_si = std::make_tuple
+        (set_s, [](int) {fail("a2_si i");});
+    apply_if_changed(si1, si3, a2_si);
+    ensure_eq("1 function was called", s, std::get<0>(si3));
+    ensure_ne("unchaged si1&3", si1, si3);
+
+    using cor::copy_apply_if_changed;
+
+    s = "X";
+    copy_apply_if_changed(si1, si3, a2_si);
+    ensure_eq("1 function was called", s, std::get<0>(si3));
+    ensure_eq("synchronized si1&3", si1, si3);
+
+    std::ostringstream ss;
+    std::tuple<int, double, std::string> ids1{98, .12, "eof"};
+    std::tuple<int, double, std::string> ids2{76, .54, "dod"};
+    auto a_ids = std::make_tuple
+        ([&ss](int const &v) { ss << v; },
+         [&ss](double const &v) { ss << v; },
+         [&ss](std::string const &v) { ss << v; });
+    copy_apply_if_changed(ids1, ids2, a_ids);
+    ensure_eq("synchronized ids", ids1, ids2);
+    ensure_eq("output ids", ss.str(), "760.54dod");
+
+    copy_apply_if_changed(ids1, ids2, a_ids);
+    ensure_eq("still synchronized ids", ids1, ids2);
+    ensure_eq("no output 2nd time ids", ss.str(), "760.54dod");
+    
     
 }
 
