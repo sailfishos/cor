@@ -45,8 +45,7 @@ public:
         WLock(WLock const &);
         WLock& operator =(WLock const &);
 
-        Mutex const &m_;
-        bool is_locked_;
+        std::unique_lock<std::mutex> lock_;
     };
 
     friend class Mutex::WLock;
