@@ -38,8 +38,8 @@ enum test_ids {
     tid_long,
     tid_long_w_param,
     tid_long_w_param_eq,
-    tid_long_w_long_param_eq
-
+    tid_long_w_long_param_eq,
+    tid_join_opts
 };
 
 typedef cor::OptParse<std::string> option_parser_type;
@@ -231,6 +231,24 @@ void object::test<tid_long_w_long_param_eq>()
     options.parse(argv.size(), &argv[0], opts, params);
     check_params(params, argv, 1, {{0, 0}});
     check_options(opts, {{"o-long-x", "X-X"}});
+}
+
+template<>
+template<>
+void object::test<tid_join_opts>()
+{
+    std::vector<char const*> argv({{"test", "-o", "1", "-v", "-o", "2"
+                    , "-v", "--opt=3"}});
+    option_parser_type options({{'o', "options"}, {'v', "o-wo-param"}},
+                               {{"opt", "options"}},
+                               {"options"},
+                               {});
+    option_parser_type::map_type opts;
+    std::vector<char const*> params;
+    options.parse(argv.size(), &argv[0], opts, params);
+    check_params(params, argv, 1, {{0, 0}});
+    std::cerr << opts.size() << "\n";
+    check_options(opts, {{"o-wo-param", ""}, {"options", "1,2,3"}});
 }
 
 }

@@ -141,6 +141,18 @@ public:
         StringT name;
         bool is_leave_param = false;
 
+        auto update_opt = [&opts](std::string const &name
+                                  , std::string const &value) {
+            auto it = opts.find(name);
+            if (it == opts.end()) {
+                opts.insert({name, value});
+            } else {
+                auto &opt = opts[name];
+                opt += ",";
+                opt += value;
+            }
+        };
+
         auto parse_short = [&](char const *s, size_t len) {
             auto p = short_opts_.find(s[1]);
             if (p == short_opts_.end()) {
@@ -157,7 +169,7 @@ public:
             if (!opt_with_params_.count(name)) {
                 opts[name] = "";
             } else if (len > 2) {
-                opts[name] = &s[2];
+                update_opt(name, &s[2]);
                 if (is_leave_param)
                     params.push_back(&s[2]);
             } else {
@@ -192,7 +204,7 @@ public:
                 opts[name] = "";
             } else {
                 if (peq)
-                    opts[name] = &peq[1];
+                    update_opt(name, &peq[1]);
                 else
                     stage = opt_param;
             }
@@ -201,7 +213,7 @@ public:
         auto parse_opt_param = [&](char const *s, size_t len) {
             if (len >= 1 && s[0] == '-')
                 throw std::logic_error(s);
-            opts[name] = s;
+            update_opt(name, s);
             if (is_leave_param)
                 params.push_back(s);
             stage = option;
