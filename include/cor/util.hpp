@@ -237,10 +237,10 @@ private:
     tag_t tag_;
 };
 
-template <typename T, typename ... Args>
-intptr_t new_tagged_handle(Args... args)
+template <typename T, typename... Args>
+intptr_t new_tagged_handle(Args&&... args)
 {
-    auto s = new TaggedObject<T>(args...);
+    auto s = new TaggedObject<T>(std::forward<Args>(args)...);
 
     if (!s->is_tagged_storage_valid())
         throw Error("New handle is corrupted?");
