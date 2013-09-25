@@ -32,6 +32,7 @@
 #include <functional>
 #include <algorithm>
 #include <stack>
+#include <utility>
 
 #include <cor/error.hpp>
 
@@ -52,6 +53,12 @@ public:
 class Expr;
 typedef std::shared_ptr<Expr> expr_ptr;
 typedef std::list<expr_ptr> expr_list_type;
+
+template <typename... Args>
+expr_ptr mk_expr(Args&& ...args)
+{
+    return std::make_shared<Expr>(std::forward<Args>(args)...);
+}
 
 class Env;
 typedef std::shared_ptr<Env> env_ptr;
