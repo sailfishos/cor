@@ -560,6 +560,13 @@ void copy_apply_if_changed(std::tuple<Args...> &values
         copy_apply_if_changed<>(values, current, actions, selector(values));
 }
 
+/// while there is no make_unique in g++
+template <typename T, typename ... Args>
+std::unique_ptr<T> make_unique(Args&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
 } // namespace cor
 
 #endif // _COR_UTIL_HPP_
