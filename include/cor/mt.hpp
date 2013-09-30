@@ -4,6 +4,7 @@
 #include <mutex>
 #include <memory>
 #include <thread>
+#include <future>
 #include <condition_variable>
 
 namespace cor {
@@ -107,6 +108,7 @@ private:
  * threads (not only c++11 but also e.g. with Qt etc.)
  *
  * @todo ability to return value of executed function
+ * @todo remove it, use std::promise
  */
 class Future
 {
@@ -156,6 +158,42 @@ private:
 
     std::shared_ptr<BasicCondition> cond;
 };
+
+// gcc 4.6 future::wait_for() returns bool instead of future_status
+// adding forward-compatibility
+
+template <class ResT> struct ChooseRightFuture {};
+
+template <>
+struct ChooseRightFuture<bool> {
+
+    template <class T, class Rep, class Period>
+    std::future_status wait_for
+    (std::future<T> const &future
+     , const std::chrono::duration<Rep,Period>& timeout) {
+        bool status = future.wait_for(timeout);
+        return status ? std::future_status::ready : std::future_status::timeout;
+    }
+};
+
+template <>
+struct ChooseRightFuture<std::future_status> {
+
+    template <class T, class Rep, class Period>
+    std::future_status wait_for
+    (std::future<T> const &future
+     , const std::chrono::duration<Rep,Period>& timeout) {
+        return future.wait_for(timeout);
+    }
+};
+
+template<class T, class Rep, class Period>
+std::future_status wait_for
+(std::future<T> const &future, const std::chrono::duration<Rep,Period>& timeout)
+{
+    auto impl = ChooseRightFuture<decltype(future.wait_for(timeout))>();
+    return impl.template wait_for<>(future, timeout);
+}
 
 
 } // cor
