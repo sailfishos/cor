@@ -514,37 +514,37 @@ struct Operations
     typedef std::tuple<Args...> const& tuple_cref;
 
     template <size_t N, typename ActionsT>
-    static void apply_if_changed
+    static size_t apply_if_changed
     (tuple_cref before, tuple_cref current, ActionsT const &actions
      , TupleSelector<N, N> const &selector)
     {
-        apply_if_changed_(before, current, actions, selector);
+        return apply_if_changed_(before, current, actions, selector);
     }
 
     template <size_t N, size_t P, typename ActionsT>
-    static void apply_if_changed
+    static size_t apply_if_changed
     (tuple_cref before, tuple_cref current, ActionsT const &actions
      , TupleSelector<N, P> const &selector)
     {
-        apply_if_changed_(before, current, actions, selector);
-        apply_if_changed(before, current, actions, selector.next());
+        return apply_if_changed_(before, current, actions, selector) +
+            apply_if_changed(before, current, actions, selector.next());
     }
 
     template <size_t N, typename ActionsT>
-    static void copy_apply_if_changed
+    static size_t copy_apply_if_changed
     (tuple_ref values, tuple_cref current, ActionsT const &actions
      , TupleSelector<N, N> const &selector)
     {
-        copy_apply_if_changed_(values, current, actions, selector);
+        return copy_apply_if_changed_(values, current, actions, selector);
     }
 
     template <size_t N, size_t P, typename ActionsT>
-    static void copy_apply_if_changed
+    static size_t copy_apply_if_changed
     (tuple_ref values, tuple_cref current, ActionsT const &actions
      , TupleSelector<N, P> const &selector)
     {
-        copy_apply_if_changed_(values, current, actions, selector);
-        copy_apply_if_changed(values, current, actions, selector.next());
+        return copy_apply_if_changed_(values, current, actions, selector) +
+            copy_apply_if_changed(values, current, actions, selector.next());
     }
 
 private:
@@ -564,7 +564,7 @@ private:
     }
 
     template <size_t N, size_t P, typename ActionsT>
-    static void apply_if_changed_
+    static size_t apply_if_changed_
     (tuple_cref before, tuple_cref current, ActionsT const &actions
      , TupleSelector<N, P> const &selector)
     {
@@ -573,12 +573,13 @@ private:
         if (v2 != v1) {
             auto fn = std::get<selector.pos>(actions);
             execute(Tag<function_traits<decltype(fn)>::arity >(), fn, v2, v1);
-            //std::get<selector.pos>(actions)(v2, v1);
+            return 1;
         }
+        return 0;
     }
 
     template <size_t N, size_t P, typename ActionsT>
-    static void copy_apply_if_changed_
+    static bool copy_apply_if_changed_
     (tuple_ref values, tuple_cref current, ActionsT const &actions
      , TupleSelector<N, P> const &selector)
     {
@@ -588,26 +589,28 @@ private:
             auto fn = std::get<selector.pos>(actions);
             execute(Tag<function_traits<decltype(fn)>::arity >(), fn, v2, v1);
             v1 = v2;
+            return 1;
         }
+        return 0;
     }
 
 };
 
 template <typename ActionsT, typename ...Args>
-void apply_if_changed(std::tuple<Args...> const &before
+size_t apply_if_changed(std::tuple<Args...> const &before
                       , std::tuple<Args...> const &current
                       , ActionsT const &actions)
 {
-    Operations<Args...>::template
+    return Operations<Args...>::template
         apply_if_changed<>(before, current, actions, selector(before));
 }
 
 template <typename ActionsT, typename ...Args>
-void copy_apply_if_changed(std::tuple<Args...> &values
-                           , std::tuple<Args...> const &current
-                           , ActionsT const &actions)
+size_t copy_apply_if_changed(std::tuple<Args...> &values
+                             , std::tuple<Args...> const &current
+                             , ActionsT const &actions)
 {
-    Operations<Args...>::template
+    return Operations<Args...>::template
         copy_apply_if_changed<>(values, current, actions, selector(values));
 }
 

@@ -409,7 +409,8 @@ void object::test<tid_tuple>()
         ([&ss](int const &v) { ss << v; },
          [&ss](double const &v) { ss << v; },
          [&ss](std::string const &v) { ss << v; });
-    copy_apply_if_changed(ids1, ids2, a_ids);
+    auto res = copy_apply_if_changed(ids1, ids2, a_ids);
+    ensure_eq("props to be copied", res, 3);
     ensure_eq("synchronized ids", ids1, ids2);
     ensure_eq("output ids", ss.str(), "760.54dod");
 
