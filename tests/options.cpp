@@ -39,7 +39,9 @@ enum test_ids {
     tid_long_w_param,
     tid_long_w_param_eq,
     tid_long_w_long_param_eq,
-    tid_join_opts
+    tid_join_opts,
+    tid_leave_param_long,
+    tid_leave_param_short
 };
 
 typedef cor::OptParse<std::string> option_parser_type;
@@ -51,7 +53,7 @@ void check_params
  size_t params_count,
  std::initializer_list<std::pair<size_t, size_t> > argv_param)
 {
-    ensure_eq("params count", params_count, params.size());
+    ensure_eq("params count", params.size(), params_count);
     for (auto &i : argv_param)
         ensure_eq(concat("param #", i.first, "==", "argv #", i.second),
                   std::string(params.at(i.first)), argv.at(i.second));
@@ -249,6 +251,40 @@ void object::test<tid_join_opts>()
     check_params(params, argv, 1, {{0, 0}});
     std::cerr << opts.size() << "\n";
     check_options(opts, {{"o-wo-param", ""}, {"options", "1,2,3"}});
+}
+
+template<>
+template<>
+void object::test<tid_leave_param_long>()
+{
+    std::vector<char const*> argv({{"test", "--x", "X", "--y", "Y"}});
+    option_parser_type options({},
+                               {{"x", "o-leave-param"}
+                                   , {"y", "o-dont-leave"}},
+                               {"o-leave-param", "o-dont-leave"},
+                               {"o-leave-param"});
+    option_parser_type::map_type opts;
+    std::vector<char const*> params;
+    options.parse(argv.size(), &argv[0], opts, params);
+    check_params(params, argv, 3, {{0, 0}, {1, 1}, {2, 2}});
+    check_options(opts, {{"o-dont-leave", "Y"}, {"o-leave-param", "X"}});
+}
+
+template<>
+template<>
+void object::test<tid_leave_param_short>()
+{
+    std::vector<char const*> argv({{"test", "-x", "X", "-y", "Y"}});
+    option_parser_type options({{'x', "leave-short"}, {'y', "dont-leave-short"}},
+                               {{"x", "o-leave-param"}
+                                   , {"y", "o-dont-leave"}},
+                               {"leave-short", "dont-leave-short"},
+                               {"leave-short"});
+    option_parser_type::map_type opts;
+    std::vector<char const*> params;
+    options.parse(argv.size(), &argv[0], opts, params);
+    check_params(params, argv, 3, {{0, 0}, {1, 1}, {2, 2}});
+    check_options(opts, {{"dont-leave-short", "Y"}, {"leave-short", "X"}});
 }
 
 }
