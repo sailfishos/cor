@@ -443,6 +443,39 @@ struct TupleSelector
 };
 
 
+template <typename T>
+struct function_traits
+    : public function_traits<decltype(&T::operator())>
+{};
+
+template <typename ResT, typename... Args>
+struct function_traits<ResT(*)(Args...)>
+{
+    enum { arity = sizeof...(Args) };
+
+    typedef ResT result_type;
+
+    template <size_t N>
+    struct Arg
+    {
+        typedef typename std::tuple_element<N, std::tuple<Args...> >::type type;
+    };
+};
+
+template <typename T, typename ResT, typename... Args>
+struct function_traits<ResT(T::*)(Args...) const>
+{
+    enum { arity = sizeof...(Args) };
+
+    typedef ResT result_type;
+
+    template <size_t N>
+    struct Arg
+    {
+        typedef typename std::tuple_element<N, std::tuple<Args...> >::type type;
+    };
+};
+
 template <size_t N> struct TupleSelector<N, N>
 {
 
@@ -516,6 +549,20 @@ struct Operations
 
 private:
 
+    template <size_t S> struct Tag {};
+
+    template <typename T1, typename T2, typename F>
+    static void execute(Tag<1> t, F const &fn, T1 const &v1, T2 const &v2)
+    {
+        fn(v1);
+    }
+
+    template <typename T1, typename T2, typename F>
+    static void execute(Tag<2> t, F const &fn, T1 const &v1, T2 const &v2)
+    {
+        fn(v1, v2);
+    }
+
     template <size_t N, size_t P, typename ActionsT>
     static void apply_if_changed_
     (tuple_cref before, tuple_cref current, ActionsT const &actions
@@ -523,8 +570,11 @@ private:
     {
         auto const &v1 = selector.get(before);
         auto const &v2 = selector.get(current);
-        if (v2 != v1)
-            std::get<selector.pos>(actions)(v2);
+        if (v2 != v1) {
+            auto fn = std::get<selector.pos>(actions);
+            execute(Tag<function_traits<decltype(fn)>::arity >(), fn, v2, v1);
+            //std::get<selector.pos>(actions)(v2, v1);
+        }
     }
 
     template <size_t N, size_t P, typename ActionsT>
@@ -535,7 +585,8 @@ private:
         auto &v1 = selector.get(values);
         auto const &v2 = selector.get(current);
         if (v2 != v1) {
-            std::get<selector.pos>(actions)(v2);
+            auto fn = std::get<selector.pos>(actions);
+            execute(Tag<function_traits<decltype(fn)>::arity >(), fn, v2, v1);
             v1 = v2;
         }
     }
