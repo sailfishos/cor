@@ -12,6 +12,7 @@ cscope*
 CTestTestfile.cmake
 /Testing/
 self_test.xml
-/cor.pc
-/src/libcor.so
+/*.pc
+/src/*.so
 tut/doc/webgen/Makefile
+tests/Testing

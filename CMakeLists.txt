@@ -2,6 +2,7 @@ PROJECT(cor)
 cmake_minimum_required(VERSION 2.8)
 
 find_package(PkgConfig)
+find_package (Threads)
 
 IF(NOT DEFINED COR_VERSION)
 MESSAGE(FATAL_ERROR "Define COR_VERSION")
@@ -18,6 +19,8 @@ ELSE()
   SET(LIB_SUFFIX "")
 ENDIF()
 
+option(ENABLE_UDEV "Enable libudev wrapper" ON)
+
 set(CMAKE_CXX_FLAGS 
   "${CMAKE_CXX_FLAGS} -Wall -O2 -feliminate-unused-debug-types -std=c++0x"
   )
@@ -33,10 +36,38 @@ INCLUDE_DIRECTORIES(
 )
 
 set(prefix ${CMAKE_INSTALL_PREFIX})
+set(DST_LIB lib${LIB_SUFFIX})
+
 configure_file(cor.pc.in cor.pc @ONLY)
 install(FILES cor.pc DESTINATION lib${LIB_SUFFIX}/pkgconfig)
 
-install(DIRECTORY include/cor DESTINATION include FILES_MATCHING REGEX "\\.hp?p?$")
+if(ENABLE_UDEV)
+pkg_check_modules(UDEV libudev REQUIRED)
+configure_file(cor-udev.pc.in cor-udev.pc @ONLY)
+install(FILES cor-udev.pc DESTINATION lib${LIB_SUFFIX}/pkgconfig)
+endif()
+
+
+if(ENABLE_UDEV)
+install(
+  DIRECTORY include/cor
+  DESTINATION include
+  FILES_MATCHING
+  PATTERN "*.hpp"
+  PATTERN "*.h"
+)
+else()
+message(STATUS "NO UDEV")
+install(
+  DIRECTORY include/cor
+  DESTINATION include
+  FILES_MATCHING
+  PATTERN "*.hpp"
+  PATTERN "*.h"
+  PATTERN "udev*" EXCLUDE
+  PATTERN "udev/*" EXCLUDE
+)
+endif()
 
 add_subdirectory(src)
 add_subdirectory(tests)

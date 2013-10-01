@@ -21,3 +21,8 @@ ENDMACRO(COR_TEST)
 foreach(t ${COR_TESTS})
   COR_TEST(${t})
 endforeach(t)
+
+if(ENABLE_UDEV)
+  COR_TEST(udev)
+  target_link_libraries(test_udev cor-udev)
+endif()

@@ -1,3 +1,5 @@
+%{!?_with_udev: %{!?_without_udev: %define _with_udev --with-udev}}
+
 Summary: Just another C++/C library
 Name: cor
 Version: 0.1.3
@@ -8,6 +10,10 @@ URL: https://github.com/deztructor/cor
 Source0: %{name}-%{version}.tar.bz2
 BuildRequires: cmake >= 2.8
 BuildRequires: pkgconfig(tut) >= 0.0.1
+%if 0%{?_with_udev:1}
+BuildRequires: pkgconfig(libudev) >= 187
+BuildRequires: pkgconfig(udev) >= 187
+%endif
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 
@@ -19,6 +25,7 @@ part of any other library :)
 Summary: cor headers etc.
 Group: System Environment/Libraries
 Requires: %{name} = %{version}-%{release}
+Requires: libudev-devel >= 187
 %description devel
 cor library header files etc.
 
@@ -26,7 +33,7 @@ cor library header files etc.
 %setup -q
 
 %build
-%cmake -DCOR_VERSION=%{version} %{?_with_multiarch:-DENABLE_MULTIARCH=ON}
+%cmake -DCOR_VERSION=%{version} %{?_with_multiarch:-DENABLE_MULTIARCH=ON} %{?_without_udev:-DENABLE_UDEV=OFF}
 make %{?jobs:-j%jobs}
 
 %check
@@ -44,12 +51,19 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %{_libdir}/libcor.so
+%if 0%{?_with_udev:1}
+%{_libdir}/libcor-udev.so
+%endif
 
 %files devel
 %defattr(-,root,root,-)
-%{_libdir}/pkgconfig/cor.pc
+%{_libdir}/pkgconfig/*.pc
+%dir %{_includedir}/cor
 %{_includedir}/cor/*.h
 %{_includedir}/cor/*.hpp
+%if 0%{?_with_udev:1}
+%{_includedir}/cor/udev/*.hpp
+%endif
 
 %doc README.org
 
