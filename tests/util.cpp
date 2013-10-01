@@ -403,14 +403,16 @@ void object::test<tid_tuple>()
     ensure_eq("synchronized si1&3", si1, si3);
 
     std::ostringstream ss;
-    std::tuple<int, double, std::string> ids1{98, .12, "eof"};
-    std::tuple<int, double, std::string> ids2{76, .54, "dod"};
+    typedef std::tuple<int, double, std::string, std::string> test_copy_apply_type;
+    test_copy_apply_type ids1{98, .12, "eof", "dummy0"};
+    test_copy_apply_type ids2{76, .54, "dod", "dummy1"};
     auto a_ids = std::make_tuple
         ([&ss](int const &v) { ss << v; },
          [&ss](double const &v) { ss << v; },
-         [&ss](std::string const &v) { ss << v; });
+         [&ss](std::string const &v) { ss << v; },
+         cor::dummy<std::string>);
     auto res = copy_apply_if_changed(ids1, ids2, a_ids);
-    ensure_eq("props to be copied", res, 3);
+    ensure_eq("props to be copied", res, 4);
     ensure_eq("synchronized ids", ids1, ids2);
     ensure_eq("output ids", ss.str(), "760.54dod");
 

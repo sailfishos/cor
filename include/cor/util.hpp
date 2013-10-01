@@ -614,6 +614,10 @@ size_t copy_apply_if_changed(std::tuple<Args...> &values
         copy_apply_if_changed<>(values, current, actions, selector(values));
 }
 
+//// to be used as a substitute of real function in copy_apply_if_changed
+template <typename T> void dummy(T const &) {}
+
+
 /// while there is no make_unique in g++
 template <typename T, typename ... Args>
 std::unique_ptr<T> make_unique(Args&&... args)
