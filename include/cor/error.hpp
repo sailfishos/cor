@@ -217,20 +217,34 @@ public:
     }
 };
 
-template <typename FnT, typename ...Args>
+template <typename FnT, typename ... Args>
 void error_tracer(FnT const &fn, Args ...args)
 {
     try {
-        fn(args...);
+        fn(std::forward<Args>(args)...);
     } catch(Error const &e) {
-        std::cerr << "CAUGHT cor::Error\n";
+        std::cerr << "Caught cor::Error\n";
         e.print_trace();
         throw e;
     } catch(std::exception const &e) {
-        std::cerr << "CAUGHT std::exception " << e.what() << std::endl;
+        std::cerr << "Caught std::exception " << e.what() << std::endl;
         throw e;
     }
 }
+
+template <typename FnT, typename ... Args>
+void error_trace_nothrow(FnT const &fn, Args ...args)
+{
+    try {
+        fn(std::forward<Args>(args)...);
+    } catch(Error const &e) {
+        std::cerr << "Caught cor::Error\n";
+        e.print_trace();
+    } catch(std::exception const &e) {
+        std::cerr << "Caught std::exception " << e.what() << std::endl;
+    }
+}
+
 
 } // namespace cor
 
