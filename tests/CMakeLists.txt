@@ -6,9 +6,9 @@ INCLUDE_DIRECTORIES(${TUT_INCLUDES})
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
 enable_testing()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
+set(COR_TESTS options util sexp notlisp mt)
 
-set(COR_TESTS options util sexp notlisp mt error)
+set_source_files_properties(error.cpp PROPERTIES COMPILE_FLAGS -O0)
 
 MACRO(COR_TEST _name)
   set(_exe_name test_${_name})
