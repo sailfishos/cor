@@ -172,6 +172,13 @@ public:
         v_ = v;
     }
 
+    handle_type release()
+    {
+        auto res = v_;
+        v_ = traits_type::invalid_();
+        return res;
+    }
+
 private:
 
     handle_type validate(handle_type h)
