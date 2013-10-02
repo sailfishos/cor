@@ -26,7 +26,7 @@ cor library header files etc.
 %setup -q
 
 %build
-%cmake -DCOR_VERSION=%{version}
+%cmake -DCOR_VERSION=%{version} %{?_with_multiarch:-DENABLE_MULTIARCH=ON}
 make %{?jobs:-j%jobs}
 
 %check
