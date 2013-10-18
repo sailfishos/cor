@@ -218,32 +218,45 @@ public:
 };
 
 template <typename FnT, typename ... Args>
-void error_tracer(FnT const &fn, Args ...args)
+void error_trace_msg(std::string const &msg, FnT const &fn, Args ...args)
 {
     try {
         fn(std::forward<Args>(args)...);
     } catch(Error const &e) {
-        std::cerr << "Caught cor::Error\n";
+        std::cerr << msg << "cor::Error: " << e.what() << std::endl;
         e.print_trace();
         throw e;
     } catch(std::exception const &e) {
-        std::cerr << "Caught std::exception " << e.what() << std::endl;
+        std::cerr << msg << "std::exception: " << e.what() << std::endl;
         throw e;
     }
 }
 
 template <typename FnT, typename ... Args>
-void error_trace_nothrow(FnT const &fn, Args ...args)
+void error_trace_msg_nothrow(std::string const &msg, FnT const &fn, Args ...args)
 {
     try {
         fn(std::forward<Args>(args)...);
     } catch(Error const &e) {
-        std::cerr << "Caught cor::Error\n";
+        std::cerr << msg << "cor::Error: " << e.what() << std::endl;
         e.print_trace();
     } catch(std::exception const &e) {
-        std::cerr << "Caught std::exception " << e.what() << std::endl;
+        std::cerr << msg << "std::exception: " << e.what() << std::endl;
     }
 }
+
+template <typename FnT, typename ... Args>
+void error_tracer(FnT const &fn, Args ...args)
+{
+    error_trace_msg("", fn, std::forward<Args>(args)...);
+}
+
+template <typename FnT, typename ... Args>
+void error_trace_nothrow(FnT const &fn, Args ...args)
+{
+    error_trace_msg_nothrow("", fn, std::forward<Args>(args)...);
+}
+
 
 
 } // namespace cor
