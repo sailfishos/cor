@@ -21,6 +21,7 @@ tf cor_mt_test("mt");
 enum test_ids {
     tid_basic_future_wake_after =  1,
     tid_basic_future_wake_before
+    , tid_completion
 };
 
 template <typename Pred>
@@ -79,6 +80,53 @@ void object::test<tid_basic_future_wake_before>()
 
     // auto res = f.wait(std::chrono::milliseconds(5000));
     // ensure_ne("No timeout", (int)res, (int)std::cv_status::timeout);
+}
+
+template <class CharT>
+std::basic_ostream<CharT>& operator <<
+(std::basic_ostream<CharT> &dst, std::cv_status src)
+{
+    dst << static_cast<int>(src);
+    return dst;
+}
+
+template<> template<>
+void object::test<tid_completion>()
+{
+    cor::Completion c;
+    c.up();
+    std::thread wait_t = std::thread([&c]() {
+            ensure_eq("Timeout waiting 1"
+                      , c.wait_for(std::chrono::milliseconds(5000))
+                      , std::cv_status::no_timeout);
+        });
+    std::thread release_t = std::thread([&c]() { c.down(); });
+    release_t.join();
+    wait_t.join();
+
+    std::thread wait0_t = std::thread([&c]() {
+            ensure_eq("Timeout waiting 0"
+                      , c.wait_for(std::chrono::milliseconds(5000))
+                      , std::cv_status::no_timeout);
+        });
+    wait0_t.join();
+
+    std::thread lock1_t = std::thread([&c]() { c.up(); });
+    std::thread lock2_t = std::thread([&c]() { c.up(); });
+    lock2_t.join();
+    lock1_t.join();
+    std::thread wait2_t = std::thread([&c]() {
+            ::usleep(1000);
+            ensure_eq("Timeout waiting 2"
+                      , c.wait_for(std::chrono::milliseconds(5000))
+                      , std::cv_status::no_timeout);
+        });
+    std::thread down1_t = std::thread([&c]() { c.down(); });
+    std::thread down2_t = std::thread([&c]() { c.down(); });
+    down2_t.join();
+    down1_t.join();
+    wait2_t.join();
+
 }
 
 }

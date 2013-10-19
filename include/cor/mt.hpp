@@ -195,6 +195,34 @@ std::future_status wait_for
     return impl.template wait_for<>(future, timeout);
 }
 
+class Completion
+{
+public:
+    Completion() : counter_(0) {}
+
+    void up();
+    void down();
+    void wait();
+
+    template<class Rep, class Period>
+    std::cv_status wait_for(const std::chrono::duration<Rep,Period> &);
+
+private:
+    std::mutex mutex_;
+    std::condition_variable done_;
+    long counter_;
+};
+
+template<class Rep, class Period>
+std::cv_status Completion::wait_for(const std::chrono::duration<Rep,Period> &timeout)
+{
+    std::unique_lock<std::mutex> lock(mutex_);
+    if (!counter_)
+        return std::cv_status::no_timeout;
+
+    return done_.wait_for(lock, timeout);
+}
+
 
 } // cor
 
