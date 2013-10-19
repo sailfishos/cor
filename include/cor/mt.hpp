@@ -224,6 +224,30 @@ std::cv_status Completion::wait_for(const std::chrono::duration<Rep,Period> &tim
 }
 
 
+class TaskQueueImpl;
+class TaskQueue
+{
+public:
+    TaskQueue();
+    TaskQueue(TaskQueue&&);
+    virtual ~TaskQueue();
+
+    bool enqueue(std::packaged_task<void()>);
+
+    template <typename T>
+    bool enqueue(T fn)
+    {
+        return enqueue(std::packaged_task<void()>{std::move(fn)});
+    }
+
+    void stop();
+    void join();
+    bool empty() const;
+
+private:
+    std::unique_ptr<TaskQueueImpl> impl_;
+};
+
 } // cor
 
 #endif // _COR_MT_HPP_

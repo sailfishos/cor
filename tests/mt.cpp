@@ -1,6 +1,9 @@
 #include <cor/mt.hpp>
 #include <cor/util.hpp>
 #include <tut/tut.hpp>
+
+#include "tests_common.hpp"
+
 #include <iostream>
 #include <unistd.h>
 
@@ -22,6 +25,7 @@ enum test_ids {
     tid_basic_future_wake_after =  1,
     tid_basic_future_wake_before
     , tid_completion
+    , tid_task_queue
 };
 
 template <typename Pred>
@@ -127,6 +131,33 @@ void object::test<tid_completion>()
     down1_t.join();
     wait2_t.join();
 
+}
+
+template<> template<>
+void object::test<tid_task_queue>()
+{
+    cor::TaskQueue q;
+    std::list<int> data;
+    int count = 0;
+    for (int i = 0; i < 3; ++i) {
+        auto is_queued = q.enqueue([&count, &data, i]() {
+                ++count;
+                data.push_back(i);
+            });
+        ensure("Should be enqueued", is_queued);
+    }
+    int wait_c = 1000;
+    while (--wait_c) {
+        if (q.empty())
+            break;
+        ::usleep(1000);
+    }
+    ensure_eq("Executed 3 times", count, 3);
+    std::list<int> expected{0, 1, 2};
+    ensure_eq("Tasks saved proper numbers", data, expected);
+    q.stop();
+    auto is_queued = q.enqueue([]() {});
+    ensure("Should not be enqueued when stopped", !is_queued);
 }
 
 }
