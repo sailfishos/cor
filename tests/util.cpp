@@ -2,6 +2,8 @@
 #include <cor/pipe.hpp>
 #include <tut/tut.hpp>
 
+#include "tests_common.hpp"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -271,35 +273,6 @@ void object::test<tid_string_join>()
     std::array<std::string, 2> arr{{"a", "c"}};
     res = join(arr, "b");
     ensure_eq("join array", res, "abc");
-}
-
-template <class T>
-bool operator == (std::list<T> const &p1, std::list<T> const &p2)
-{
-    auto b1 = std::begin(p1);
-    auto b2 = std::begin(p2);
-    auto e1 = std::end(p1);
-    auto e2 = std::end(p2);
-    for (; b1 != e1; ++b1, ++b2) {
-        if (b2 == e2)
-            return false;
-
-        if (*b1 != *b2)
-            return false;
-    }
-    return (b2 == e2);
-}
-
-template <class CharT, class T>
-std::basic_ostream<CharT>& operator <<
-(std::basic_ostream<CharT> &dst, std::list<T> const &src)
-{
-    dst << "(";
-    for (auto v : src) {
-        dst << " '" << v << "'";
-    }
-    dst << ")";
-    return dst;
 }
 
 template<> template<>
