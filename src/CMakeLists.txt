@@ -1,8 +1,15 @@
 add_library(cor SHARED notlisp.cpp mt.cpp)
+
+set_target_properties(cor PROPERTIES
+  SOVERSION 0
+  VERSION ${COR_VERSION}
+  )
+
 target_link_libraries(cor
   ${CMAKE_THREAD_LIBS_INIT}
   -ldl
 )
+
 install(TARGETS cor DESTINATION lib${LIB_SUFFIX})
 
 if(ENABLE_UDEV)
@@ -17,6 +24,11 @@ link_directories(
 add_library(cor-udev SHARED
   udev.cpp
   udev-util.cpp
+  )
+
+set_target_properties(cor-udev PROPERTIES
+  SOVERSION 0
+  VERSION ${COR_VERSION}
   )
 
 target_link_libraries(cor-udev

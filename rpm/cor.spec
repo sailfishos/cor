@@ -51,8 +51,12 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %{_libdir}/libcor.so
+%{_libdir}/libcor.so.0
+%{_libdir}/libcor.so.%{version}
 %if 0%{?_with_udev:1}
 %{_libdir}/libcor-udev.so
+%{_libdir}/libcor-udev.so.0
+%{_libdir}/libcor-udev.so.%{version}
 %endif
 
 %files devel
@@ -67,3 +71,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %doc README.org
 
+
+%post -p /sbin/ldconfig
+
+%postun -p /sbin/ldconfig
