@@ -33,7 +33,8 @@ enum test_ids {
     tid_types,
     tid_const,
     tid_wrong_expr,
-    tid_simple_fn
+    tid_simple_fn,
+    tid_list
 };
 
 template<> template<>
@@ -197,6 +198,67 @@ void object::test<tid_simple_fn>()
              check_fn1)
         };
     for (auto &v : data) exec(v);
+}
+
+template<> template<>
+void object::test<tid_list>()
+{
+    using namespace cor::notlisp;
+    using cor::sexp::parse;
+
+    env_ptr env(new Env({
+                mk_record("list", [](env_ptr, expr_list_type &params) {
+                        return mk_list(params); }),
+                    }));
+
+    auto exec = [&env] (std::string const &src,
+                        std::function<void (ListAccessor &)> check) {
+        std::istringstream in(src);
+        Interpreter interpreter(env);
+        parse(in, interpreter);
+        ListAccessor res(interpreter.results());
+        check(res);
+    };
+
+    exec("(list)", [](ListAccessor &res) {
+            auto alist = res.required<List>();
+            ensure("Expecting List", alist.get());
+            ensure_eq("Empty list", alist->items.size(), 0);
+            ListAccessor params(alist->items);
+            ensure_throws<Error>("Nothing is expected",
+                                 [&params]() { params.required(); });
+        });
+    exec("(list 1 2)", [](ListAccessor &res) {
+            auto alist = res.required<List>();
+            ensure("Expecting List", alist.get());
+            ensure_eq("List with 2 items", alist->items.size(), 2);
+            int vbefore = 0;
+            rest(alist->items, [&vbefore](expr_ptr e) {
+                    ensure_eq("List of integers", e->type(), Expr::Integer);
+                    long vnow = -1;
+                    to_long(e, vnow);
+                    ensure_eq("List of consequent integers", vnow, vbefore + 1);
+                    vbefore = vnow;
+                    return true;
+                });
+        });
+
+    exec("(list 1 \"2\" list)", [](ListAccessor &res) {
+            auto alist = res.required<List>();
+            ensure("Expecting List", alist.get());
+            ensure_eq("List with 3 items", alist->items.size(), 3);
+            ListAccessor params(alist->items);
+            long l = -1;
+            std::string s;
+            params.required(to_long, l);
+            ensure_eq("1st int", l, 1);
+            params.required(to_string, s);
+            ensure_eq("2nd str", s, "2");
+            auto e = params.required();
+            ensure_eq("Last is symbol", e->type(), Expr::Function);
+            ensure_throws<Error>("Nothing is expected",
+                                 [&params]() { params.required(); });
+        });
 }
 
 }
