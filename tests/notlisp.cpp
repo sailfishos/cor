@@ -147,16 +147,15 @@ template<> template<>
 void object::test<tid_simple_fn>()
 {
     using namespace cor::notlisp;
-    using cor::sexp::mk_parser;
+    using cor::sexp::parse;
 
     typedef std::function<void (ListAccessor &)> check_type;
     typedef std::tuple<std::string, env_ptr, check_type> data_type;
 
     auto exec = [] (data_type &data) {
         std::istringstream in(std::get<0>(data));
-        auto parser(mk_parser(in));
         Interpreter interpreter(std::get<1>(data));
-        parser(interpreter);
+        parse(in, interpreter);
         ListAccessor res(interpreter.results());
         std::get<2>(data)(res);
     };
