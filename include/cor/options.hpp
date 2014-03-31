@@ -141,8 +141,8 @@ public:
         StringT name;
         bool is_leave_param = false;
 
-        auto update_opt = [&opts](std::string const &name
-                                  , std::string const &value) {
+        auto update_opt = [&opts](StringT const &name
+                                  , StringT const &value) {
             auto it = opts.find(name);
             if (it == opts.end()) {
                 opts.insert({name, value});
@@ -181,8 +181,8 @@ public:
             char const *pname = &s[2];
             char const *peq = strchr(pname, '=');
             name = (peq
-                    ? std::string(pname, peq - pname)
-                    : std::string(pname));
+                    ? StringT(pname, peq - pname)
+                    : StringT(pname));
 
             auto p = long_opts_.find(name);
             if (p == long_opts_.end()) {
