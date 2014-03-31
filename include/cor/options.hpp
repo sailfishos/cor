@@ -55,26 +55,12 @@ public:
      */
     OptParse(std::initializer_list<short_item_type> short_opts
              , std::initializer_list<item_type> long_opts
-             , std::initializer_list<StringT> opt_with_params
-             , std::initializer_list<StringT> leave_in_params)
+             , std::initializer_list<StringT> opt_with_params = {}
+             , std::initializer_list<StringT> leave_in_params = {})
         : short_opts_(short_opts)
         , long_opts_(long_opts)
         , opt_with_params_(opt_with_params)
         , leave_in_params_(leave_in_params)
-    { }
-
-    OptParse(std::initializer_list<short_item_type> short_opts,
-             std::initializer_list<item_type> long_opts,
-             std::initializer_list<StringT> opt_with_params)
-        : short_opts_(short_opts),
-          long_opts_(long_opts),
-          opt_with_params_(opt_with_params)
-    { }
-
-    OptParse(std::initializer_list<short_item_type> short_opts,
-             std::initializer_list<item_type> long_opts)
-        : short_opts_(short_opts),
-          long_opts_(long_opts)
     { }
 
     /**
