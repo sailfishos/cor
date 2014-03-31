@@ -1,4 +1,4 @@
-add_library(cor SHARED notlisp.cpp mt.cpp sexp.cpp)
+add_library(cor SHARED notlisp.cpp mt.cpp sexp.cpp util.cpp)
 
 set_target_properties(cor PROPERTIES
   SOVERSION 0

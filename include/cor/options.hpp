@@ -256,6 +256,8 @@ private:
     std::set<StringT> leave_in_params_;
 };
 
+extern template class OptParse<std::string>;
+
 } // cor
 
 #endif // _COR_OPTIONS_HPP_
