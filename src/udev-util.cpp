@@ -11,7 +11,32 @@
 
 namespace cor { namespace udevpp {
 
-bool is_keyboard(Device const &dev)
+class KeyboardCheck
+{
+public:
+    KeyboardCheck() {
+        input.setf(std::ios_base::hex, std::ios_base::basefield);
+    }
+    bool is_keyboard(Device const &);
+
+private:
+
+    bool read_hex(std::string const &s, unsigned long &v)
+    {
+        try {
+            input.str(s);
+            input >> v;
+        } catch (std::ios_base::failure &e) {
+            std::cerr << e.what();
+            return false;
+        }
+        return true;
+    }
+
+    std::istringstream input;
+};
+
+bool KeyboardCheck::is_keyboard(Device const &dev)
 {
     auto p = dev.attr("capabilities/key");
     if (!p)
@@ -26,14 +51,9 @@ bool is_keyboard(Device const &dev)
         return false;
 
     std::vector<unsigned long> caps;
-    std::istringstream input;
-    input.setf(std::ios_base::hex, std::ios_base::basefield);
     for(auto const &s : caps_strs) {
         unsigned long v;
-        bool is_ok = false;
-        input.str(s);
-        input >> v;
-        if (!is_ok)
+        if (!read_hex(s, v))
             return false;
         caps.push_back(v);
     }
@@ -47,6 +67,12 @@ bool is_keyboard(Device const &dev)
             ++count;
     }
     return (count == KEY_P - KEY_Q);
+}
+
+bool is_keyboard(Device const &dev)
+{
+    KeyboardCheck check;
+    return check.is_keyboard(dev);
 }
 
 bool is_keyboard_available()
@@ -63,9 +89,10 @@ bool is_keyboard_available()
     auto devs = input.devices();
 
     bool is_kbd_found = false;
-    auto find_kbd = [&is_kbd_found, &udev](DeviceInfo const &e) -> bool {
+    KeyboardCheck check;
+    auto find_kbd = [&check, &is_kbd_found, &udev](DeviceInfo const &e) -> bool {
         Device d(udev, e.path());
-        is_kbd_found = is_keyboard(d);
+        is_kbd_found = check.is_keyboard(d);
         return !is_kbd_found;
     };
     devs.find(find_kbd);
