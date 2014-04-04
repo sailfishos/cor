@@ -492,12 +492,12 @@ protected:
     virtual expr_ptr do_eval(env_ptr, expr_ptr);
 };
 
-expr_ptr mk_list(expr_list_type &params)
+static inline expr_ptr mk_list(expr_list_type &params)
 {
     return std::make_shared<List>(params);
 }
 
-expr_ptr mk_list(expr_list_type &&params)
+static inline expr_ptr mk_list(expr_list_type &&params)
 {
     return std::make_shared<List>(std::move(params));
 }
