@@ -166,8 +166,13 @@ std::basic_ostream<T>& operator <<
     return dst;
 }
 
+static inline std::string mk_error_message(std::string const &info)
+{
+    return info;
+}
+
 template <typename ... Args>
-std::string mk_error_message(std::string const &info, Args ...args)
+std::string mk_error_message(std::string const &info, Args &&... args)
 {
     auto len = info.size();
     if (!len)
@@ -190,8 +195,9 @@ class Error : public std::runtime_error
 {
 public:
     template <typename ... Args>
-    Error(std::string const &info, Args ... args)
-        : std::runtime_error(mk_error_message(info, args...))
+    Error(std::string const &info, Args &&... args)
+        : std::runtime_error
+          (mk_error_message(info, std::forward<Args>(args)...))
     {
     }
 
