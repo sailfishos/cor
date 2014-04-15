@@ -4,9 +4,9 @@ cmake_minimum_required(VERSION 2.8)
 find_package(PkgConfig)
 find_package (Threads)
 
-IF(NOT DEFINED COR_VERSION)
-MESSAGE(FATAL_ERROR "Define COR_VERSION")
-ENDIF(NOT DEFINED COR_VERSION)
+IF(NOT DEFINED VERSION)
+MESSAGE(FATAL_ERROR "Define VERSION")
+ENDIF(NOT DEFINED VERSION)
 
 option(ENABLE_MULTIARCH "Enable support for multi-arch distros (lib64)" OFF)
 IF(ENABLE_MULTIARCH)
