@@ -11,32 +11,7 @@
 
 namespace cor { namespace udevpp {
 
-class KeyboardCheck
-{
-public:
-    KeyboardCheck() {
-        input.setf(std::ios_base::hex, std::ios_base::basefield);
-    }
-    bool is_keyboard(Device const &);
-
-private:
-
-    bool read_hex(std::string const &s, unsigned long &v)
-    {
-        try {
-            input.str(s);
-            input >> v;
-        } catch (std::ios_base::failure &e) {
-            std::cerr << e.what();
-            return false;
-        }
-        return true;
-    }
-
-    std::istringstream input;
-};
-
-bool KeyboardCheck::is_keyboard(Device const &dev)
+bool is_keyboard(Device const &dev)
 {
     auto p = dev.attr("capabilities/key");
     if (!p)
@@ -51,28 +26,22 @@ bool KeyboardCheck::is_keyboard(Device const &dev)
         return false;
 
     std::vector<unsigned long> caps;
-    for(auto const &s : caps_strs) {
-        unsigned long v;
-        if (!read_hex(s, v))
-            return false;
-        caps.push_back(v);
-    }
+    caps.reserve(caps_strs.size());
+    for(auto const &s : caps_strs)
+        caps.push_back(std::stoul(s, 0, 16));
+
+    static const size_t bits = sizeof(unsigned long) * 8;
+    auto caps_last = caps.size() - 1;
+    if (caps_last < (KEY_P / bits))
+        return false;
+
     size_t count = 0;
     for (unsigned i = KEY_Q; i <= KEY_P; ++i) {
-        int pos = caps.size() - (i / sizeof(unsigned long));
-        if (pos < 0)
-            break;
-        size_t bit = i % sizeof(unsigned long);
+        auto pos = caps_last - i / bits, bit = i % bits;
         if ((caps[pos] >> bit) & 1)
             ++count;
     }
-    return (count == KEY_P - KEY_Q);
-}
-
-bool is_keyboard(Device const &dev)
-{
-    KeyboardCheck check;
-    return check.is_keyboard(dev);
+    return (count == KEY_P - KEY_Q + 1);
 }
 
 bool is_keyboard_available()
@@ -89,10 +58,9 @@ bool is_keyboard_available()
     auto devs = input.devices();
 
     bool is_kbd_found = false;
-    KeyboardCheck check;
-    auto find_kbd = [&check, &is_kbd_found, &udev](DeviceInfo const &e) -> bool {
+    auto find_kbd = [&is_kbd_found, &udev](DeviceInfo const &e) -> bool {
         Device d(udev, e.path());
-        is_kbd_found = check.is_keyboard(d);
+        is_kbd_found = is_keyboard(d);
         return !is_kbd_found;
     };
     devs.find(find_kbd);
