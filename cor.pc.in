@@ -4,6 +4,6 @@ includedir=${prefix}/include
 
 Name: cor
 Description: cor library
-Version: @COR_VERSION@
-Libs: -lcor
+Version: @VERSION@
+Libs: -lcor -L${libdir}
 Cflags: -I${includedir}

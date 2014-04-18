@@ -22,7 +22,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
+ *
  * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  */
 
@@ -35,6 +35,7 @@
 #include <utility>
 
 #include <cor/error.hpp>
+#include <cor/sexp.hpp>
 
 namespace cor
 {
@@ -71,7 +72,7 @@ public:
     typedef typename dict_type::value_type item_type;
 
     Env() {}
-    Env(std::initializer_list<item_type> syms) 
+    Env(std::initializer_list<item_type> syms)
         : dict(syms)
     {}
 
@@ -137,7 +138,7 @@ protected:
 
     friend expr_ptr eval(env_ptr env, expr_ptr src);
 
-    template <typename CharT> friend 
+    template <typename CharT> friend
     std::basic_ostream<CharT> & operator <<
     (std::basic_ostream<CharT> &, Expr const &);
 
@@ -165,6 +166,9 @@ std::basic_ostream<CharT> & operator <<
     return dst;
 }
 
+extern template
+std::basic_ostream<char> & operator <<
+(std::basic_ostream<char> &dst, Expr const &src);
 
 expr_ptr eval(env_ptr env, expr_ptr src);
 
@@ -181,6 +185,15 @@ public:
 protected:
     virtual expr_ptr do_eval(env_ptr, expr_ptr);
 };
+
+typedef BasicExpr<Expr::String> String;
+typedef BasicExpr<Expr::Symbol> Symbol;
+typedef BasicExpr<Expr::Keyword> Keyword;
+typedef BasicExpr<Expr::Object> Object;
+typedef BasicExpr<Expr::Function> Function;
+typedef BasicExpr<Expr::Nil> Nil;
+typedef BasicExpr<Expr::Integer> Integer;
+typedef BasicExpr<Expr::Real> Real;
 
 template <>
 class BasicExpr<Expr::Nil> : public Expr
@@ -264,6 +277,9 @@ void to_string(expr_ptr expr, std::string &dst);
 void to_long(expr_ptr expr, long &dst);
 void to_double(expr_ptr expr, double &dst);
 
+template <typename T>
+void convert(expr_ptr, T &dst);
+
 static inline Env::item_type mk_record
 (std::string const &name, lambda_type const &fn)
 {
@@ -293,6 +309,12 @@ public:
     (env_ptr env,
      atom_converter_type atom_converter = &cor::notlisp::default_atom_convert);
 
+    Interpreter(Interpreter &&from)
+        : env(from.env)
+        , stack(std::move(from.stack))
+        , convert_atom(from.convert_atom)
+    {}
+
     void on_list_begin()
     {
         stack.push(expr_list_type());
@@ -313,8 +335,17 @@ public:
 
     expr_list_type const& results() const
     {
+        if (empty())
+            throw Error("Interpreter has not any results");
+
         return stack.top();
     }
+
+    bool empty() const
+    {
+        return stack.empty();
+    }
+
 private:
     env_ptr env;
     std::stack<expr_list_type> stack;
@@ -341,6 +372,9 @@ public:
     bool has_more() const { return cur != end; }
 
     expr_ptr required();
+
+    template <typename T>
+    std::shared_ptr<T> required();
 
     /// access required parameters list member, write result using
     /// convert function to dst. \return this object to allow chained
@@ -371,10 +405,23 @@ ListAccessor& ListAccessor::required(void (*convert)(expr_ptr, T &dst), T &dst)
     return *this;
 }
 
+template <typename T>
+std::shared_ptr<T> ListAccessor::required()
+{
+    return std::dynamic_pointer_cast<T>(required());
+}
+
 template <typename ConsumerT>
 static void rest(ListAccessor &src, ConsumerT fn)
 {
     while (src.optional(fn)) {}
+}
+
+template <typename ConsumerT>
+static void rest(expr_list_type &src, ConsumerT fn)
+{
+    ListAccessor access(src);
+    rest(access, fn);
 }
 
 template <typename T, typename FnT>
@@ -430,6 +477,30 @@ void push_rest_casted(ListAccessor &src, T &dst) {
     };
     push_rest(src, dst, fn);
 };
+
+class List : public ObjectExpr
+{
+public:
+    List(expr_list_type &src)
+        : ObjectExpr("list"), items(src) {}
+
+    List(expr_list_type &&src)
+        : ObjectExpr("list"), items(std::move(src)) {}
+
+    expr_list_type items;
+protected:
+    virtual expr_ptr do_eval(env_ptr, expr_ptr);
+};
+
+static inline expr_ptr mk_list(expr_list_type &params)
+{
+    return std::make_shared<List>(params);
+}
+
+static inline expr_ptr mk_list(expr_list_type &&params)
+{
+    return std::make_shared<List>(std::move(params));
+}
 
 }} // cor::notlisp
 

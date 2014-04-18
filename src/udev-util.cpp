@@ -26,27 +26,22 @@ bool is_keyboard(Device const &dev)
         return false;
 
     std::vector<unsigned long> caps;
-    std::istringstream input;
-    input.setf(std::ios_base::hex, std::ios_base::basefield);
-    for(auto const &s : caps_strs) {
-        unsigned long v;
-        bool is_ok = false;
-        input.str(s);
-        input >> v;
-        if (!is_ok)
-            return false;
-        caps.push_back(v);
-    }
+    caps.reserve(caps_strs.size());
+    for(auto const &s : caps_strs)
+        caps.push_back(std::stoul(s, 0, 16));
+
+    static const size_t bits = sizeof(unsigned long) * 8;
+    auto caps_last = caps.size() - 1;
+    if (caps_last < (KEY_P / bits))
+        return false;
+
     size_t count = 0;
     for (unsigned i = KEY_Q; i <= KEY_P; ++i) {
-        int pos = caps.size() - (i / sizeof(unsigned long));
-        if (pos < 0)
-            break;
-        size_t bit = i % sizeof(unsigned long);
+        auto pos = caps_last - i / bits, bit = i % bits;
         if ((caps[pos] >> bit) & 1)
             ++count;
     }
-    return (count == KEY_P - KEY_Q);
+    return (count == KEY_P - KEY_Q + 1);
 }
 
 bool is_keyboard_available()

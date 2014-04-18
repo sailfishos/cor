@@ -632,6 +632,11 @@ std::unique_ptr<T> make_unique(Args&&... args)
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
+static inline std::string str(char const *v, char const *defval)
+{
+    return v ? v : defval;
+}
+
 } // namespace cor
 
 #endif // _COR_UTIL_HPP_

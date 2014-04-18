@@ -1,4 +1,13 @@
 #include <cor/notlisp.hpp>
+#include <cor/sexp_impl.hpp>
+
+namespace cor {
+namespace sexp {
+
+template
+void parse(std::basic_istream<char> &, cor::notlisp::Interpreter &);
+
+}}
 
 namespace cor
 {
@@ -180,7 +189,24 @@ expr_ptr ListAccessor::required()
 {
     if (cur == end)
         throw Error("Required param is absent");
-        return *cur++;
+
+    return *cur++;
+}
+
+template
+std::basic_ostream<char> & operator <<
+(std::basic_ostream<char> &dst, Expr const &src);
+
+expr_ptr List::do_eval(env_ptr env, expr_ptr p)
+{
+    expr_list_type res;
+    auto self = std::dynamic_pointer_cast<List>(p);
+    if (!self)
+        return mk_nil();
+    auto &src = self->items;
+    for (auto &v : src)
+        res.push_back(eval(env, v));
+    return std::make_shared<List>(std::move(res));
 }
 
 } // notlisp

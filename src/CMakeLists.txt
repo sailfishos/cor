@@ -1,8 +1,8 @@
-add_library(cor SHARED notlisp.cpp mt.cpp)
+add_library(cor SHARED notlisp.cpp mt.cpp sexp.cpp util.cpp)
 
 set_target_properties(cor PROPERTIES
   SOVERSION 0
-  VERSION ${COR_VERSION}
+  VERSION ${VERSION}
   )
 
 target_link_libraries(cor
@@ -28,7 +28,7 @@ add_library(cor-udev SHARED
 
 set_target_properties(cor-udev PROPERTIES
   SOVERSION 0
-  VERSION ${COR_VERSION}
+  VERSION ${VERSION}
   )
 
 target_link_libraries(cor-udev

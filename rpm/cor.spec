@@ -33,7 +33,7 @@ cor library header files etc.
 %setup -q
 
 %build
-%cmake -DCOR_VERSION=%{version} %{?_with_multiarch:-DENABLE_MULTIARCH=ON} %{?_without_udev:-DENABLE_UDEV=OFF}
+%cmake -DVERSION=%{version} %{?_with_multiarch:-DENABLE_MULTIARCH=ON} %{?_without_udev:-DENABLE_UDEV=OFF}
 make %{?jobs:-j%jobs}
 
 %check

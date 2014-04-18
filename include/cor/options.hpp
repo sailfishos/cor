@@ -56,25 +56,13 @@ public:
     OptParse(std::initializer_list<short_item_type> short_opts
              , std::initializer_list<item_type> long_opts
              , std::initializer_list<StringT> opt_with_params
-             , std::initializer_list<StringT> leave_in_params)
+             = std::initializer_list<StringT>()
+             , std::initializer_list<StringT> leave_in_params
+             = std::initializer_list<StringT>())
         : short_opts_(short_opts)
         , long_opts_(long_opts)
         , opt_with_params_(opt_with_params)
         , leave_in_params_(leave_in_params)
-    { }
-
-    OptParse(std::initializer_list<short_item_type> short_opts,
-             std::initializer_list<item_type> long_opts,
-             std::initializer_list<StringT> opt_with_params)
-        : short_opts_(short_opts),
-          long_opts_(long_opts),
-          opt_with_params_(opt_with_params)
-    { }
-
-    OptParse(std::initializer_list<short_item_type> short_opts,
-             std::initializer_list<item_type> long_opts)
-        : short_opts_(short_opts),
-          long_opts_(long_opts)
     { }
 
     /**
@@ -141,8 +129,8 @@ public:
         StringT name;
         bool is_leave_param = false;
 
-        auto update_opt = [&opts](std::string const &name
-                                  , std::string const &value) {
+        auto update_opt = [&opts](StringT const &name
+                                  , StringT const &value) {
             auto it = opts.find(name);
             if (it == opts.end()) {
                 opts.insert({name, value});
@@ -181,8 +169,8 @@ public:
             char const *pname = &s[2];
             char const *peq = strchr(pname, '=');
             name = (peq
-                    ? std::string(pname, peq - pname)
-                    : std::string(pname));
+                    ? StringT(pname, peq - pname)
+                    : StringT(pname));
 
             auto p = long_opts_.find(name);
             if (p == long_opts_.end()) {
@@ -255,6 +243,8 @@ private:
     std::set<StringT> opt_with_params_;
     std::set<StringT> leave_in_params_;
 };
+
+extern template class OptParse<std::string>;
 
 } // cor
 
