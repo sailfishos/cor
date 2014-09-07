@@ -126,19 +126,22 @@ public:
 
     template <typename ... Args>
     Handle(handle_type v, Args&&... args)
-        : traits_type(args...), v_(v)
+        : traits_type(std::forward<Args>(args)...), v_(v)
     {}
 
     template <typename ... Args>
     Handle(handle_type v, handle_option option, Args&&... args)
-        : traits_type(args...)
+        : traits_type(std::forward<Args>(args)...)
         , v_((option == allow_invalid_handle) ? v : validate(v))
     {}
 
     ~Handle() { close(); }
 
+    Handle(Handle const &) = delete;
+    Handle & operator = (Handle const &) = delete;
+
     Handle(Handle &&from)
-        : v_(from.v_)
+        : v_(std::move(from.v_))
     {
         from.v_ = traits_type::invalid_();
     }
@@ -187,9 +190,6 @@ private:
             throw cor::Error("Handle is not valid");
         return h;
     }
-
-    Handle(Handle &);
-    Handle & operator = (Handle &);
 
     handle_type v_;
 };
