@@ -637,6 +637,18 @@ static inline std::string str(char const *v, char const *defval)
     return v ? v : defval;
 }
 
+template <typename EnumT>
+size_t enum_size() noexcept
+{
+    return static_cast<size_t>(EnumT::Last_) + 1;
+}
+
+template <typename EnumT>
+constexpr size_t enum_index
+(const EnumT e, typename std::enable_if<std::is_enum<EnumT>::value>::type* = 0)
+{
+    return static_cast<size_t>(e);
+}
 } // namespace cor
 
 #endif // _COR_UTIL_HPP_

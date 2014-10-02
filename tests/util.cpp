@@ -1,5 +1,4 @@
 #include <cor/util.hpp>
-#include <cor/pipe.hpp>
 #include <tut/tut.hpp>
 
 #include "tests_common.hpp"
@@ -40,7 +39,8 @@ enum test_ids {
     tid_tagged_storage,
     tid_string_join,
     tid_string_split,
-    tid_tuple
+    tid_tuple,
+    tid_enum
 };
 
 class TestTraits
@@ -394,6 +394,16 @@ void object::test<tid_tuple>()
     ensure_eq("no output 2nd time ids", ss.str(), "760.54dod");
     
     
+}
+
+template<> template<>
+void object::test<tid_enum>()
+{
+    enum class E1 { A = 0, B = 1, Last_ = B };
+    ensure_eq("Enum size", cor::enum_size<E1>(), 2);
+    ensure_eq("Enum index", cor::enum_index(E1::B), 1);
+    std::tuple<int, std::string> t{1, "2"};
+    ensure_eq("tuple enum", std::get<0>(t), std::get<cor::enum_index(E1::A) >(t));
 }
 
 }
