@@ -53,7 +53,8 @@ enum test_ids {
     tid_string_split,
     tid_tuple,
     tid_enum,
-    tid_enum_struct
+    tid_enum_struct,
+    tid_ptr_traits
 };
 
 class TestTraits
@@ -437,4 +438,18 @@ void object::test<tid_enum_struct>()
     ss << test2;
     ensure_eq("Output", ss.str(), "(First=r2, Second=(First=v1, Second=3))");
 }
+
+template<> template<>
+void object::test<tid_ptr_traits>()
+{
+    static bool a = false, b = false;
+    struct Test { ~Test() { a = true; }};
+    typedef typename cor::ptr_traits<Test>::unique_ptr ptr;
+    do {
+        ptr p(new Test(), [](Test *p) { b = true; delete p; });
+    } while (0);
+    ensure("Not deleted", a);
+    ensure("Custom deleter is not called", b);
+}
+
 }

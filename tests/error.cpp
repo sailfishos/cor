@@ -39,7 +39,6 @@ void object::test<tid_error_dump>()
         depth1 = e.trace.end() - e.trace.begin();
         std::for_each(e.trace.begin(), e.trace.end()
                       , [&traces1](char const *p) {
-                          std::cerr << "tb1: " << p << std::endl;
                           traces1.push_back(p);
                       });
     }
@@ -49,10 +48,10 @@ void object::test<tid_error_dump>()
         depth2 = e.trace.end() - e.trace.begin();
         std::for_each(e.trace.begin(), e.trace.end()
                       , [&traces2](char const *p) {
-                          std::cerr << "tb2: " << p << std::endl;
                           traces2.push_back(p);
                       });
     }
+    ensure_eq("Similar depths", depth1, depth2);
     auto it1 = traces1.begin();
     auto it2 = traces2.begin();
     size_t depth = 0;

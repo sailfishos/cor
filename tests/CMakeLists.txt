@@ -6,8 +6,9 @@ INCLUDE_DIRECTORIES(${TUT_INCLUDES})
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
 enable_testing()
 
-set(COR_TESTS options util sexp notlisp mt)
+set(COR_TESTS error options util sexp notlisp mt os)
 
+# It counts stack trace depth, so optimization should not be done
 set_source_files_properties(error.cpp PROPERTIES COMPILE_FLAGS -O0)
 
 MACRO(COR_TEST _name)
