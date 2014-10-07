@@ -29,17 +29,20 @@ Requires: libudev-devel >= 187
 %description devel
 cor library header files etc.
 
+%package tests
+Summary:    Tests for cor
+License:    LGPLv2.1
+Group:      System Environment/Libraries
+Requires:   %{name} = %{version}-%{release}
+%description tests
+%summary
+
 %prep
 %setup -q
 
 %build
 %cmake -DVERSION=%{version} %{?_with_multiarch:-DENABLE_MULTIARCH=ON} %{?_without_udev:-DENABLE_UDEV=OFF}
 make %{?jobs:-j%jobs}
-
-%check
-# for some reason in obs env library linked by full path can't be found
-# so, adding it to LD_LIBRARY_PATH
-LD_LIBRARY_PATH=../src make %{?jobs:-j%jobs} check
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -71,6 +74,9 @@ rm -rf $RPM_BUILD_ROOT
 
 %doc README.org
 
+%files tests
+%defattr(-,root,root,-)
+/opt/tests/cor/*
 
 %post -p /sbin/ldconfig
 
