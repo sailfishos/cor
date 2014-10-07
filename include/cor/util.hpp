@@ -10,6 +10,7 @@
 #include <cstdarg>
 #include <stack>
 #include <sstream>
+#include <memory>
 
 #include <ctime>
 
@@ -185,9 +186,9 @@ public:
 
     handle_type release()
     {
-        auto res = v_;
+        auto res = std::move(v_);
         v_ = traits_type::invalid_();
-        return res;
+        return std::move(res);
     }
 
 private:
