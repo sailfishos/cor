@@ -54,7 +54,8 @@ enum test_ids {
     tid_tuple,
     tid_enum,
     tid_enum_struct,
-    tid_ptr_traits
+    tid_ptr_traits,
+    tid_scope_exit
 };
 
 class TestTraits
@@ -450,6 +451,22 @@ void object::test<tid_ptr_traits>()
     } while (0);
     ensure("Not deleted", a);
     ensure("Custom deleter is not called", b);
+}
+
+template<> template<>
+void object::test<tid_scope_exit>()
+{
+    static int count = 0;
+    do {
+        auto finalize = cor::on_scope_exit([]() { ++count; });
+    } while (0);
+    ensure_eq("Expected finalize to be called", count, 1);
+
+    do {
+        auto finalize = cor::on_scope_exit([]() { ++count; });
+        finalize();
+    } while (0);
+    ensure_eq("Expected finalize to be called only once", count, 2);
 }
 
 }

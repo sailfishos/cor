@@ -340,12 +340,26 @@ template <typename T>
 class ScopeExit
 {
 public:
-    ScopeExit(T&& fn) : fn_(std::move(fn)) {}
-    ScopeExit(ScopeExit &&src) : fn_(src.fn_) {}
-    ~ScopeExit() { fn_(); }
+    ScopeExit(T&& fn) : is_called_(false), fn_(std::move(fn)) {}
+    ScopeExit(ScopeExit &&src)
+        : is_called_(src.is_called_)
+        , fn_(std::move(src.fn_))
+    {
+        src.is_called_ = true;
+    }
+    ScopeExit(ScopeExit const&) = delete;
+    ScopeExit& operator =(ScopeExit const&) = delete;
+    ~ScopeExit() noexcept { (*this)(); }
+
+    void operator ()()
+    {
+        if (!is_called_) {
+            fn_();
+            is_called_ = true;
+        }
+    }
 private:
-    ScopeExit(ScopeExit const&);
-    ScopeExit& operator =(ScopeExit const&);
+    bool is_called_;
     T fn_;
 };
 
