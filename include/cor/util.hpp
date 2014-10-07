@@ -13,6 +13,14 @@
 
 #include <ctime>
 
+#if (__GNUC__ == 4 && __GNUC_MINOR__ > 7) || (__GNUC__ > 4)
+#define GOOD_CPP11_COMPILER
+#define MAYBE_CONSTEXPR constexpr
+#elif (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
+#define MAYBE_CPP11_COMPILER
+#define MAYBE_CONSTEXPR
+#endif
+
 namespace cor
 {
 
@@ -649,6 +657,132 @@ constexpr size_t enum_index
 {
     return static_cast<size_t>(e);
 }
+
+template <typename ...Args>
+constexpr size_t count(Args &&...)
+{
+    return sizeof...(Args);
+}
+
+template <typename... T>
+constexpr auto make_array(T&&... values) ->
+    std::array
+    <typename std::decay
+     <typename std::common_type<T...>::type>::type
+     , sizeof...(T)>
+{
+    return std::array
+        <typename std::decay
+         <typename std::common_type<T...>::type>::type,
+         sizeof...(T)>
+        {{std::forward<T>(values)...}};
+}
+
 } // namespace cor
+
+// outside of namespace
+template <typename T> struct RecordTraits;
+
+/**
+ *
+ * The usefulness of the Record is that compile-time algorithms can be
+ * applied to it because Record is just a wrapper around tuple. On the
+ * other hand access to record fields is done by typed enum accessors
+ * so it is impossible to mix fields like it can happen with tuples
+ *
+ * To create a record one should specialize RecordTraits for
+ * corresponding enum class and typedef field types as the type tuple
+ * inside the specialization of RecordTraits
+ *
+ */
+template <typename FieldsT>
+struct Record
+{
+    typedef FieldsT id_type;
+    typedef typename RecordTraits<FieldsT>::type data_type;
+    static constexpr size_t size = static_cast<size_t>(FieldsT::Last_) + 1;
+
+    static_assert(size == std::tuple_size<data_type>::value
+                  , "Enum should end with Last_ == last element Id");
+
+    Record(data_type const &src) : data(src) {}
+    Record(data_type &&src) : data(std::move(src)) {}
+
+    template <typename ... Args>
+    Record(Args &&...args) : data(std::forward<Args>(args)...) {}
+
+    template <FieldsT Id>
+    typename std::tuple_element<static_cast<size_t>(Id), data_type>::type &get()
+    {
+        return std::get<Index<Id>::value>(data);
+    }
+
+    template <FieldsT Id>
+    typename std::tuple_element<static_cast<size_t>(Id), data_type>::type const &
+        get() const
+    {
+        return std::get<Index<Id>::value>(data);
+    }
+
+    template <FieldsT Id>
+    struct Index {
+        static constexpr size_t value = static_cast<size_t>(Id);
+    };
+
+    template <size_t Index>
+    struct Enum {
+        static constexpr FieldsT value = static_cast<FieldsT>(Index);
+        static_assert(value <= FieldsT::Last_, "Should be <= Last_");
+    };
+
+private:
+    data_type data;
+};
+
+#define RECORD_NAMES(Id, id_names__...)                             \
+    template <Id N> static MAYBE_CONSTEXPR char const * name()      \
+    {                                                               \
+        static_assert(cor::count(id_names__) == Record<Id>::size,   \
+                      "Check names count");                         \
+        return std::get<(size_t)N>(cor::make_array(id_names__));    \
+    }
+
+template <size_t N>
+struct RecordDump
+{
+    template <typename StreamT, typename FieldsT>
+    static void out(StreamT &d, Record<FieldsT> const &v)
+    {
+        static constexpr auto end = (size_t)FieldsT::Last_;
+        static constexpr auto id = Record<FieldsT>::template Enum<end - N>::value;
+        static MAYBE_CONSTEXPR auto name = RecordTraits<FieldsT>::template name<id>();
+        auto const &r = v.template get<id>();
+        d << name << "=" << r << ", ";
+        RecordDump<N - 1>::out(d, v);
+    }
+};
+
+template <>
+struct RecordDump<0>
+{
+    template <typename StreamT, typename FieldsT>
+    static void out(StreamT &d, Record<FieldsT> const &v)
+    {
+        static auto constexpr end = static_cast<size_t>(FieldsT::Last_);
+        static auto constexpr id = Record<FieldsT>::template Enum<end>::value;
+        static auto MAYBE_CONSTEXPR *name(RecordTraits<FieldsT>::template name<id>());
+        auto const &r = v.template get<id>();
+        d << name << "=" << r;
+    }
+};
+
+template <typename T, typename FieldsT>
+std::basic_ostream<T>& operator <<
+(std::basic_ostream<T> &dst, Record<FieldsT> const &v)
+{
+    static constexpr auto index = static_cast<size_t>(FieldsT::Last_);
+    dst << "("; RecordDump<index>::out(dst, v); dst << ")";
+    return dst;
+}
 
 #endif // _COR_UTIL_HPP_

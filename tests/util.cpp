@@ -16,6 +16,18 @@
 using std::string;
 using std::runtime_error;
 
+enum class Rec1 { First, Second, Last_ = Second };
+template <> struct RecordTraits<Rec1> {
+    typedef std::tuple<std::string, int> type;
+    RECORD_NAMES(Rec1, "First", "Second");
+};
+
+enum class Rec2 { First, Second, Last_ = Second };
+template <> struct RecordTraits<Rec2> {
+    typedef std::tuple<std::string, Record<Rec1> > type;
+    RECORD_NAMES(Rec2, "First", "Second");
+};
+
 namespace tut
 {
 
@@ -40,7 +52,8 @@ enum test_ids {
     tid_string_join,
     tid_string_split,
     tid_tuple,
-    tid_enum
+    tid_enum,
+    tid_enum_struct
 };
 
 class TestTraits
@@ -406,4 +419,22 @@ void object::test<tid_enum>()
     ensure_eq("tuple enum", std::get<0>(t), std::get<cor::enum_index(E1::A) >(t));
 }
 
+template<> template<>
+void object::test<tid_enum_struct>()
+{
+    Record<Rec1> test{"value1", 12};
+    ensure_eq("1st field", test.get<Rec1::First>(), "value1");
+    ensure_eq("2nd field", test.get<Rec1::Second>(), 12);
+    test.get<Rec1::First>() = "new_value";
+    ensure_eq("1st field after assignment", test.get<Rec1::First>(), "new_value");
+    test.get<Rec1::Second>() = 123;
+    ensure_eq("2nd field after assignment", test.get<Rec1::Second>(), 123);
+    std::stringstream ss;
+    ss << test;
+    ensure_eq("Output", ss.str(), "(First=new_value, Second=123)");
+    Record<Rec2> test2{"r2", Record<Rec1>{"v1", 3}};
+    ss.str("");
+    ss << test2;
+    ensure_eq("Output", ss.str(), "(First=r2, Second=(First=v1, Second=3))");
+}
 }
