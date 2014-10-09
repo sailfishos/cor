@@ -661,7 +661,8 @@ static inline std::string str(char const *v, char const *defval)
 }
 
 template <typename EnumT>
-size_t enum_size() noexcept
+constexpr size_t enum_size
+(typename std::enable_if<std::is_enum<EnumT>::value>::type* = 0) noexcept
 {
     return static_cast<size_t>(EnumT::Last_) + 1;
 }
@@ -671,6 +672,13 @@ constexpr size_t enum_index
 (const EnumT e, typename std::enable_if<std::is_enum<EnumT>::value>::type* = 0)
 {
     return static_cast<size_t>(e);
+}
+
+template <typename EnumT>
+size_t is_end
+(EnumT e, typename std::enable_if<std::is_enum<EnumT>::value>::type* = 0) noexcept
+{
+    return enum_index(e) >= enum_size<EnumT>();
 }
 
 template <typename ...Args>
