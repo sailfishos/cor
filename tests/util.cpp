@@ -1,5 +1,4 @@
 #include <cor/util.hpp>
-#include <cor/pipe.hpp>
 #include <tut/tut.hpp>
 
 #include "tests_common.hpp"
@@ -16,6 +15,18 @@
 
 using std::string;
 using std::runtime_error;
+
+enum class Rec1 { First, Second, Last_ = Second };
+template <> struct RecordTraits<Rec1> {
+    typedef std::tuple<std::string, int> type;
+    RECORD_NAMES(Rec1, "First", "Second");
+};
+
+enum class Rec2 { First, Second, Last_ = Second };
+template <> struct RecordTraits<Rec2> {
+    typedef std::tuple<std::string, Record<Rec1> > type;
+    RECORD_NAMES(Rec2, "First", "Second");
+};
 
 namespace tut
 {
@@ -40,7 +51,11 @@ enum test_ids {
     tid_tagged_storage,
     tid_string_join,
     tid_string_split,
-    tid_tuple
+    tid_tuple,
+    tid_enum,
+    tid_enum_struct,
+    tid_ptr_traits,
+    tid_scope_exit
 };
 
 class TestTraits
@@ -394,6 +409,64 @@ void object::test<tid_tuple>()
     ensure_eq("no output 2nd time ids", ss.str(), "760.54dod");
     
     
+}
+
+template<> template<>
+void object::test<tid_enum>()
+{
+    enum class E1 { A = 0, B = 1, Last_ = B };
+    ensure_eq("Enum size", cor::enum_size<E1>(), 2);
+    ensure_eq("Enum index", cor::enum_index(E1::B), 1);
+    std::tuple<int, std::string> t{1, "2"};
+    ensure_eq("tuple enum", std::get<0>(t), std::get<cor::enum_index(E1::A) >(t));
+}
+
+template<> template<>
+void object::test<tid_enum_struct>()
+{
+    Record<Rec1> test{"value1", 12};
+    ensure_eq("1st field", test.get<Rec1::First>(), "value1");
+    ensure_eq("2nd field", test.get<Rec1::Second>(), 12);
+    test.get<Rec1::First>() = "new_value";
+    ensure_eq("1st field after assignment", test.get<Rec1::First>(), "new_value");
+    test.get<Rec1::Second>() = 123;
+    ensure_eq("2nd field after assignment", test.get<Rec1::Second>(), 123);
+    std::stringstream ss;
+    ss << test;
+    ensure_eq("Output", ss.str(), "(First=new_value, Second=123)");
+    Record<Rec2> test2{"r2", Record<Rec1>{"v1", 3}};
+    ss.str("");
+    ss << test2;
+    ensure_eq("Output", ss.str(), "(First=r2, Second=(First=v1, Second=3))");
+}
+
+template<> template<>
+void object::test<tid_ptr_traits>()
+{
+    static bool a = false, b = false;
+    struct Test { ~Test() { a = true; }};
+    typedef typename cor::ptr_traits<Test>::unique_ptr ptr;
+    do {
+        ptr p(new Test(), [](Test *p) { b = true; delete p; });
+    } while (0);
+    ensure("Not deleted", a);
+    ensure("Custom deleter is not called", b);
+}
+
+template<> template<>
+void object::test<tid_scope_exit>()
+{
+    static int count = 0;
+    do {
+        auto finalize = cor::on_scope_exit([]() { ++count; });
+    } while (0);
+    ensure_eq("Expected finalize to be called", count, 1);
+
+    do {
+        auto finalize = cor::on_scope_exit([]() { ++count; });
+        finalize();
+    } while (0);
+    ensure_eq("Expected finalize to be called only once", count, 2);
 }
 
 }

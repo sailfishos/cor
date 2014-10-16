@@ -43,73 +43,79 @@ namespace cor
 {
 
 template <typename T>
-std::unique_ptr<T, void (*)(void*)> mk_cmem_handle(T *from)
+struct ptr_traits
 {
-    return std::unique_ptr<T, void (*)(void*)>(from, &std::free);
+    typedef std::unique_ptr<T, void (*)(T*)> unique_ptr;
+};
+
+template <typename T>
+struct c_ptr_traits
+{
+    typedef std::unique_ptr<T, void (*)(void*)> unique_ptr;
+};
+
+template <typename T>
+typename c_ptr_traits<T>::unique_ptr mk_cmem_handle(T *from)
+{
+    return typename c_ptr_traits<T>::unique_ptr(from, &std::free);
 }
 
 template <typename T>
-std::unique_ptr<T, void (*)(void*)> mk_cmem_handle()
+typename c_ptr_traits<T>::unique_ptr mk_cmem_handle()
 {
     return mk_cmem_handle<T>(nullptr);
 }
 
-static inline bool is_address_valid(void *p)
-{
-    bool res = false;
-    int fd[2];
-    if (pipe(fd) >= 0) {
-        if (write(fd[1], p, 128) > 0)
-            res = true;
+bool is_address_valid(void *);
 
-        close(fd[0]);
-        close(fd[1]);
-    }
-    return res;
-}
+
+struct Backtrace_ {
+    typedef typename c_ptr_traits<char const*>::unique_ptr symbols_ptr;
+    typedef std::pair<symbols_ptr, size_t> symbols_type;
+    static symbols_type get_symbols(void *const *, size_t);
+    static std::string name(size_t index, char const* existing_name, void *const * frame);
+};
 
 template <size_t Frames>
-class Backtrace
+class Backtrace : private Backtrace_
 {
 public:
     Backtrace()
-        : count_(::backtrace(&frames[0], frames.size())),
-          symbols(nullptr)
+        : count_(::backtrace(&frames[0], frames.size()))
+        , symbols(mk_cmem_handle<char const*>())
     { }
 
     Backtrace(Backtrace const &src)
-        : count_(0), symbols(nullptr)
+        : count_(0)
+        , symbols(mk_cmem_handle<char const*>())
     {
         count_ = src.count_;
         std::copy(&src.frames[0], &src.frames[count_], frames.begin());
         if (src.symbols) {
-            symbols = (const char**)calloc(src.count_, sizeof(symbols[0]));
-            std::copy(&src.symbols[0], &src.symbols[count_], &symbols[0]);
+            symbols.reset((const char**)calloc(src.count_, sizeof(*symbols)));
+            auto to = src.symbols.get(), from = symbols.get();
+            std::copy(from, from + count_, to);
         }
     }
 
-    ~Backtrace() noexcept
-    {
-        if (symbols)
-            ::free(symbols);
-    }
+    ~Backtrace() noexcept {}
 
     const char **begin() const
     {
         update_symbols();
-        return &symbols[0];
+        return symbols.get();
     }
 
     const char **end() const
     {
         update_symbols();
-        return &symbols[count_];
+        return symbols.get() + count_;
     }
 
     char const* at(size_t index) const
     {
         update_symbols();
-        return (index < count_) ? symbols[index] : "???";
+        return (index < count_ && symbols) ? symbols.get()[index] : "???";
     }
 
     bool dladdr(size_t index, Dl_info &info) const
@@ -119,13 +125,9 @@ public:
 
     std::string name(size_t index) const
     {
-        Dl_info info;
-        int status = -1;
-        auto p = mk_cmem_handle<char>();
-        if (dladdr(index, info) && info.dli_sname)
-            p.reset(abi::__cxa_demangle(info.dli_sname, NULL, 0, &status));
-
-        return p ? std::string(p.get()) : std::string(at(index));
+        return (index < count_)
+            ? Backtrace_::name(index, at(index), &frames[index])
+            : "?";
     }
 
     size_t size() const
@@ -137,24 +139,14 @@ private:
 
     void update_symbols() const
     {
-        if (symbols)
-            return;
-
-        symbols = const_cast<char const**>
-            (backtrace_symbols(&frames[0], count_));
-
-        if (!symbols) {
-            symbols = static_cast<char const**>
-                (::calloc(1, sizeof(symbols[0])));
-            symbols[0] = "?";
-            count_ = 1;
-        }
+        if (!symbols)
+            std::tie(symbols, count_) = Backtrace_::get_symbols(&frames[0], count_);
     }
 
     std::array<void*, Frames> frames;
     mutable size_t count_;
 
-    mutable char const** symbols;
+    mutable Backtrace_::symbols_ptr symbols;
 };
 
 template <typename T, size_t N>
