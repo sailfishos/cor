@@ -3,7 +3,7 @@ pkg_check_modules(TUT tut REQUIRED)
 
 INCLUDE_DIRECTORIES(${TUT_INCLUDES})
 
-set(COR_TESTS error options util sexp notlisp mt)
+set(COR_TESTS error options util sexp notlisp mt os)
 set(TESTS_DIR /opt/tests/cor)
 
 # It counts stack trace depth, so optimization should not be done
