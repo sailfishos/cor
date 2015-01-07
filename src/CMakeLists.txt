@@ -9,7 +9,7 @@ set_target_properties(cor PROPERTIES
 
 target_link_libraries(cor
   ${CMAKE_THREAD_LIBS_INIT}
-  -ldl
+  ${CMAKE_DL_LIBS}
 )
 
 install(TARGETS cor DESTINATION lib${LIB_SUFFIX})
@@ -35,7 +35,7 @@ set_target_properties(cor-udev PROPERTIES
 
 target_link_libraries(cor-udev
   ${UDEV_LIBRARIES}
-  ${COR_LIBRARIES}
+  cor
   )
 
 install(TARGETS cor-udev DESTINATION ${DST_LIB})
