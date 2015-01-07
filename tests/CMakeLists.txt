@@ -25,5 +25,5 @@ if(ENABLE_UDEV)
   target_link_libraries(test_udev cor-udev)
 endif()
 
-configure_file(tests.xml.in tests.xml @ONLY)
-install(FILES tests.xml DESTINATION ${TESTS_DIR})
+configure_file(tests.xml.in ${CMAKE_BINARY_DIR}/tests.xml @ONLY)
+install(FILES ${CMAKE_BINARY_DIR}/tests.xml DESTINATION ${TESTS_DIR})

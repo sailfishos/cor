@@ -1,4 +1,5 @@
 %{!?_with_udev: %{!?_without_udev: %define _with_udev --with-udev}}
+%{!?cmake_install: %define cmake_install make install DESTDIR=%{buildroot}}
 
 Summary: Just another C++/C library
 Name: cor
@@ -46,7 +47,7 @@ make %{?jobs:-j%jobs}
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=%{buildroot}
+%cmake_install
 
 %clean
 rm -rf $RPM_BUILD_ROOT

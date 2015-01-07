@@ -38,13 +38,13 @@ INCLUDE_DIRECTORIES(
 set(prefix ${CMAKE_INSTALL_PREFIX})
 set(DST_LIB lib${LIB_SUFFIX})
 
-configure_file(cor.pc.in cor.pc @ONLY)
-install(FILES cor.pc DESTINATION lib${LIB_SUFFIX}/pkgconfig)
+configure_file(cor.pc.in ${CMAKE_BINARY_DIR}/cor.pc @ONLY)
+install(FILES ${CMAKE_BINARY_DIR}/cor.pc DESTINATION lib${LIB_SUFFIX}/pkgconfig)
 
 if(ENABLE_UDEV)
 pkg_check_modules(UDEV libudev REQUIRED)
-configure_file(cor-udev.pc.in cor-udev.pc @ONLY)
-install(FILES cor-udev.pc DESTINATION lib${LIB_SUFFIX}/pkgconfig)
+configure_file(cor-udev.pc.in ${CMAKE_BINARY_DIR}/cor-udev.pc @ONLY)
+install(FILES ${CMAKE_BINARY_DIR}/cor-udev.pc DESTINATION lib${LIB_SUFFIX}/pkgconfig)
 endif()
 
 
