@@ -72,11 +72,14 @@ rm -rf $RPM_BUILD_ROOT
 %if 0%{?_with_udev:1}
 %{_includedir}/cor/udev/*.hpp
 %endif
+%dir %{_libdir}/cmake/cor
+%{_libdir}/cmake/cor/*
 
 %doc README.org
 
 %files tests
 %defattr(-,root,root,-)
+%dir /opt/tests/cor
 /opt/tests/cor/*
 
 %post -p /sbin/ldconfig
