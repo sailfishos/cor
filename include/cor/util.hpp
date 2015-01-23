@@ -577,6 +577,23 @@ struct Operations
             copy_apply_if_changed(values, current, actions, selector.next());
     }
 
+    template <size_t N, typename ActionsT>
+    static void apply
+    (tuple_cref values, ActionsT const &actions
+     , TupleSelector<N, N> const &selector)
+    {
+        apply_(values, actions, selector);
+    }
+
+    template <size_t N, size_t P, typename ActionsT>
+    static void apply
+    (tuple_cref values, ActionsT const &actions
+     , TupleSelector<N, P> const &selector)
+    {
+        apply_(values, actions, selector);
+        apply(values, actions, selector.next());
+    }
+
 private:
 
     template <size_t S> struct Tag {};
@@ -624,6 +641,16 @@ private:
         return 0;
     }
 
+    template <size_t N, size_t P, typename ActionsT>
+    static void apply_
+    (tuple_cref values, ActionsT const &actions
+     , TupleSelector<N, P> const &selector)
+    {
+        auto &v = selector.get(values);
+        auto fn = std::get<selector.pos>(actions);
+        fn(v);
+    }
+
 };
 
 template <typename ActionsT, typename ...Args>
@@ -642,6 +669,12 @@ size_t copy_apply_if_changed(std::tuple<Args...> &values
 {
     return Operations<Args...>::template
         copy_apply_if_changed<>(values, current, actions, selector(values));
+}
+
+template <typename ActionsT, typename ...Args>
+void apply(std::tuple<Args...> const &values, ActionsT const &actions)
+{
+    Operations<Args...>::template apply<>(values, actions, selector(values));
 }
 
 //// to be used as a substitute of real function in copy_apply_if_changed
@@ -749,7 +782,7 @@ struct Record
     {
         data = std::move(src.data); return *this;
     }
-    
+
     template <FieldsT Id>
     typename std::tuple_element<static_cast<size_t>(Id), data_type>::type &get()
     {

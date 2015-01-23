@@ -407,7 +407,9 @@ void object::test<tid_tuple>()
     ensure_eq("still synchronized ids", ids1, ids2);
     ensure_eq("no output 2nd time ids", ss.str(), "760.54dod");
     
-    
+    ss.str("");
+    cor::apply(ids1, a_ids);
+    ensure_eq("output ids", ss.str(), "760.54dod");
 }
 
 template<> template<>
