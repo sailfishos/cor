@@ -31,7 +31,7 @@ Backtrace_::get_symbols(void *const *frames, size_t count)
 }
 
 std::string Backtrace_::name
-(size_t index, char const* existing_name, void *const * frame)
+(size_t, char const* existing_name, void *const * frame)
 {
     Dl_info info;
     int status = -1;

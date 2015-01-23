@@ -32,7 +32,7 @@ bool is_keyboard(Device const &dev)
 
     static const size_t bits = sizeof(unsigned long) * 8;
     auto caps_last = caps.size() - 1;
-    if (caps_last < (KEY_P / bits))
+    if (caps_last < ((KEY_P + bits) / bits))
         return false;
 
     size_t count = 0;

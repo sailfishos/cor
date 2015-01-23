@@ -582,13 +582,13 @@ private:
     template <size_t S> struct Tag {};
 
     template <typename T1, typename T2, typename F>
-    static void execute(Tag<1> t, F const &fn, T1 const &v1, T2 const &v2)
+    static void execute(Tag<1>, F const &fn, T1 const &v1, T2 const &)
     {
         fn(v1);
     }
 
     template <typename T1, typename T2, typename F>
-    static void execute(Tag<2> t, F const &fn, T1 const &v1, T2 const &v2)
+    static void execute(Tag<2>, F const &fn, T1 const &v1, T2 const &v2)
     {
         fn(v1, v2);
     }
@@ -758,7 +758,6 @@ struct Record
         static_assert(value <= FieldsT::Last_, "Should be <= Last_");
     };
 
-private:
     data_type data;
 };
 

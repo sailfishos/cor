@@ -64,7 +64,7 @@ public:
     typedef int handle_type;
     TestTraits() { c_ += 1; }
     TestTraits(int arg) { arg_ = arg; }
-    void close_(int v) { c_ -= 1; }
+    void close_(int) { c_ -= 1; }
     bool is_valid_(int v) const { return v >= 0; }
     int invalid_() const { return -1; }
 
@@ -162,7 +162,7 @@ void object::test<tid_generic_handle>()
     typedef Handle<GenericHandleTraits<int, -1> > generic_test_type;
     int counter = 1;
     do {
-        generic_test_type h(13, [&counter](int v) { --counter; });
+        generic_test_type h(13, [&counter](int) { --counter; });
         ensure_eq("valid", h.is_valid(), true);
         ensure_eq("set correctly", h.value(), 13);
         ensure_eq("counter is ok", counter, 1);
