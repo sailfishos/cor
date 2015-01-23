@@ -1,5 +1,5 @@
 add_library(cor SHARED
-  notlisp.cpp mt.cpp sexp.cpp util.cpp error.cpp
+  notlisp.cpp mt.cpp sexp.cpp util.cpp error.cpp trace.cpp
   )
 
 set_target_properties(cor PROPERTIES

@@ -4,7 +4,7 @@ pkg_check_modules(TUT tut REQUIRED)
 INCLUDE_DIRECTORIES(${TUT_INCLUDES})
 
 testrunner_project(cor)
-set(COR_TESTS error options util sexp notlisp mt os)
+set(COR_TESTS error options util sexp notlisp mt os trace)
 
 # It counts stack trace depth, so optimization should not be done
 set_source_files_properties(error.cpp PROPERTIES COMPILE_FLAGS -O0)
