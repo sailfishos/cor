@@ -24,6 +24,7 @@
  * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  */
 
+#include <cor/util.hpp>
 #include <cor/error.hpp>
 #include <iostream>
 
@@ -69,7 +70,10 @@ namespace cor { namespace debug {
 
 std::basic_ostream<char> &default_stream();
 
-enum class Level { Debug = 1, Info, Warning, Error, Critical };
+enum class Level { First_ = 1, Debug = First_
+        , Info, Warning, Error, Critical
+        , Last_ = Critical
+        };
 
 /// EOL - output end-of-line, NoEol - no end-of-line
 enum class Trace { Eol, NoEol };
@@ -167,11 +171,25 @@ void print_line(A&& ...args)
 void level(Level);
 bool is_tracing_level(Level);
 
+extern "C" const char *level_tags[];
+
+static inline char const *level_tag(Level l)
+{
+    return level_tags[cor::enum_index(l)];
+}
+
+template <typename CharT>
+std::basic_ostream<CharT>& operator << (std::basic_ostream<CharT> &s, Level l)
+{
+    s << level_tag(l);
+    return s;
+}
+
 template <typename CharT, typename ... A>
 void print_line_ge(std::basic_ostream<CharT> &dst, Level print_level, A&& ...args)
 {
     if (is_tracing_level(print_level))
-        print_line_to(dst, std::forward<A>(args)...);
+        print_line_to(dst, print_level, std::forward<A>(args)...);
 }
 
 template <typename ... A>

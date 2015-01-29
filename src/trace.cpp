@@ -20,13 +20,20 @@ std::once_flag set_level_once_;
 std::basic_ostream<char> &default_stream_ = std::cerr;
 }
 
+const char *level_tags[] = {
+    "1:", "2:", "3:", "4:", "5:"
+};
+static_assert(sizeof(level_tags) / sizeof(level_tags[0])
+              == cor::enum_size<Level>()
+              , "Check level tag names size");
+
 void init()
 {
     std::call_once(set_level_once_, []() {
             auto c = ::getenv("COR_DEBUG");
             if (c) {
                 std::string name(c);
-                current_level = name.size() ? std::stoi(name) : (int)Level::Critical;
+                current_level = name.size() ? std::stoi(name) : (int)Level::Error;
             }
         });
 }
