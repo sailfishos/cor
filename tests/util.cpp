@@ -415,7 +415,7 @@ void object::test<tid_tuple>()
 template<> template<>
 void object::test<tid_enum>()
 {
-    enum class E1 { A = 0, B = 1, Last_ = B };
+    enum class E1 { First_ = 0, A = First_, B = 1, Last_ = B };
     ensure_eq("Enum size", cor::enum_size<E1>(), 2);
     ensure_eq("Enum index", cor::enum_index(E1::B), 1);
     std::tuple<int, std::string> t{1, "2"};
