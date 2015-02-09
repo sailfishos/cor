@@ -17,16 +17,15 @@ using std::string;
 using std::runtime_error;
 
 enum class Rec1 { First, Second, Last_ = Second };
-template <> struct RecordTraits<Rec1> {
-    typedef std::tuple<std::string, int> type;
-    RECORD_NAMES(Rec1, "First", "Second");
+typedef Record<Rec1, std::string, int> rec1_type;
+template <> struct RecordTraits<rec1_type> {
+    RECORD_FIELD_NAMES(rec1_type, "First", "Second");
 };
 
+
 enum class Rec2 { First, Second, Last_ = Second };
-template <> struct RecordTraits<Rec2> {
-    typedef std::tuple<std::string, Record<Rec1> > type;
-    RECORD_NAMES(Rec2, "First", "Second");
-};
+typedef Record<Rec2, std::string, rec1_type> rec2_type;
+RECORD_TRAITS_FIELD_NAMES(rec2_type, "First", "Second");
 
 namespace tut
 {
@@ -64,7 +63,7 @@ public:
     typedef int handle_type;
     TestTraits() { c_ += 1; }
     TestTraits(int arg) { arg_ = arg; }
-    void close_(int v) { c_ -= 1; }
+    void close_(int) { c_ -= 1; }
     bool is_valid_(int v) const { return v >= 0; }
     int invalid_() const { return -1; }
 
@@ -162,7 +161,7 @@ void object::test<tid_generic_handle>()
     typedef Handle<GenericHandleTraits<int, -1> > generic_test_type;
     int counter = 1;
     do {
-        generic_test_type h(13, [&counter](int v) { --counter; });
+        generic_test_type h(13, [&counter](int) { --counter; });
         ensure_eq("valid", h.is_valid(), true);
         ensure_eq("set correctly", h.value(), 13);
         ensure_eq("counter is ok", counter, 1);
@@ -408,13 +407,15 @@ void object::test<tid_tuple>()
     ensure_eq("still synchronized ids", ids1, ids2);
     ensure_eq("no output 2nd time ids", ss.str(), "760.54dod");
     
-    
+    ss.str("");
+    cor::apply(ids1, a_ids);
+    ensure_eq("output ids", ss.str(), "760.54dod");
 }
 
 template<> template<>
 void object::test<tid_enum>()
 {
-    enum class E1 { A = 0, B = 1, Last_ = B };
+    enum class E1 { First_ = 0, A = First_, B = 1, Last_ = B };
     ensure_eq("Enum size", cor::enum_size<E1>(), 2);
     ensure_eq("Enum index", cor::enum_index(E1::B), 1);
     std::tuple<int, std::string> t{1, "2"};
@@ -424,7 +425,7 @@ void object::test<tid_enum>()
 template<> template<>
 void object::test<tid_enum_struct>()
 {
-    Record<Rec1> test{"value1", 12};
+    rec1_type test{"value1", 12};
     ensure_eq("1st field", test.get<Rec1::First>(), "value1");
     ensure_eq("2nd field", test.get<Rec1::Second>(), 12);
     test.get<Rec1::First>() = "new_value";
@@ -434,10 +435,18 @@ void object::test<tid_enum_struct>()
     std::stringstream ss;
     ss << test;
     ensure_eq("Output", ss.str(), "(First=new_value, Second=123)");
-    Record<Rec2> test2{"r2", Record<Rec1>{"v1", 3}};
+    rec2_type test2{"r2", rec1_type{"v1", 3}};
     ss.str("");
     ss << test2;
     ensure_eq("Output", ss.str(), "(First=r2, Second=(First=v1, Second=3))");
+
+    rec1_type test_copy(test);
+    ensure_eq("fields are initialized", test_copy, test);
+    test_copy.get<Rec1::First>() = "w";
+    test_copy.get<Rec1::Second>() = 22;
+    ensure_ne("fields are different", test_copy, test);
+    test_copy = test;
+    ensure_eq("fields are copied", test_copy, test);
 }
 
 template<> template<>

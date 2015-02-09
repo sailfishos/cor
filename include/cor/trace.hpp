@@ -3,7 +3,7 @@
 /*
  * Dumb debug tracing
  *
- * Copyright (C) 2012 Jolla Ltd.
+ * Copyright (C) 2012-2015 Jolla Ltd.
  * Contact: Denis Zalevskiy <denis.zalevskiy@jollamobile.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -20,10 +20,11 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301 USA
- * 
+ *
  * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  */
 
+#include <cor/util.hpp>
 #include <cor/error.hpp>
 #include <iostream>
 
@@ -64,5 +65,188 @@ static inline std::string caller_name()
 }
 
 #endif // DEBUG
+
+namespace cor { namespace debug {
+
+std::basic_ostream<char> &default_stream();
+
+enum class Level { First_ = 1, Debug = First_
+        , Info, Warning, Error, Critical
+        , Last_ = Critical
+        };
+
+/// EOL - output end-of-line, NoEol - no end-of-line
+enum class Trace { Eol, NoEol };
+
+void init();
+
+template <typename StreamT>
+class TraceContext {
+public:
+    typedef StreamT stream_type;
+
+    TraceContext(StreamT &stream, bool eol = false) : stream_(stream), eol_(eol) {}
+    ~TraceContext() { if (eol_) this->stream_ << std::endl; }
+
+    StreamT &stream_;
+    bool eol_;
+};
+
+template <typename StreamT, typename T>
+TraceContext<StreamT> & operator << (TraceContext<StreamT> &dst, T v)
+{
+    dst.stream_ << v;
+    return dst;
+}
+
+template <typename StreamT>
+TraceContext<StreamT> & operator << (TraceContext<StreamT> &dst, Trace f)
+{
+    switch (f) {
+    case Trace::Eol:
+        dst.eol_ = true;
+        break;
+    case Trace::NoEol:
+        dst.eol_ = false;
+        break;
+    }
+    return dst;
+}
+
+template <typename CharT>
+TraceContext<std::basic_ostream<char> > tracer(std::basic_ostream<CharT> &dst)
+{
+    return TraceContext<std::basic_ostream<CharT> >(dst, false);
+}
+
+template <typename CharT>
+TraceContext<std::basic_ostream<char> > line_tracer(std::basic_ostream<CharT> &dst)
+{
+    return TraceContext<std::basic_ostream<CharT> >(dst, true);
+}
+
+template <typename StreamT, typename T, typename ... Args>
+TraceContext<StreamT> & operator <<
+(TraceContext<StreamT> &d, std::function<T(Args...)> const &)
+{
+    d << "std::function<...>";
+    return d;
+}
+
+// final function stub in recursion
+template <typename StreamT>
+static inline void print(TraceContext<StreamT> &&) { }
+
+template <typename StreamT, typename T, typename ... A>
+void print(TraceContext<StreamT> &&d, T &&v1, A&& ...args)
+{
+    d << v1;
+    return print(std::move(d), std::forward<A>(args)...);
+}
+
+template <typename CharT, typename ... A>
+void print_to(std::basic_ostream<CharT> &dst, A&& ...args)
+{
+    return print(tracer(dst), std::forward<A>(args)...);
+}
+
+template <typename CharT, typename ... A>
+void print_line_to(std::basic_ostream<CharT> &dst, A&& ...args)
+{
+    return print(line_tracer(dst), std::forward<A>(args)...);
+}
+
+template <typename ... A>
+void print(A&& ...args)
+{
+    return print_to(default_stream(), std::forward<A>(args)...);
+}
+
+template <typename StreamT, typename ... A>
+void print_line(A&& ...args)
+{
+    return print_line_to(default_stream(), std::forward<A>(args)...);
+}
+
+void level(Level);
+bool is_tracing_level(Level);
+
+extern "C" const char *level_tags[];
+
+static inline char const *level_tag(Level l)
+{
+    return level_tags[cor::enum_index(l)];
+}
+
+template <typename CharT>
+std::basic_ostream<CharT>& operator << (std::basic_ostream<CharT> &s, Level l)
+{
+    s << level_tag(l);
+    return s;
+}
+
+template <typename CharT, typename ... A>
+void print_line_ge(std::basic_ostream<CharT> &dst, Level print_level, A&& ...args)
+{
+    if (is_tracing_level(print_level))
+        print_line_to(dst, print_level, std::forward<A>(args)...);
+}
+
+template <typename ... A>
+void print_line_ge(Level print_level, A&& ...args)
+{
+    print_line_ge(default_stream(), print_level, std::forward<A>(args)...);
+}
+
+/// by default print with end-of-line, pass Trace::NoEol to print w/o
+/// it
+class Log
+{
+public:
+    Log(std::string const &prefix, std::basic_ostream<char> &stream)
+        : prefix_(prefix + ": "), stream_(stream)
+    {}
+    
+    template <typename ... A>
+    void debug(A&& ...args)
+    {
+        print_line_ge(stream_, Level::Debug, prefix_, std::forward<A>(args)...);
+    }
+
+    template <typename ... A>
+    void info(A&& ...args)
+    {
+        print_line_ge(stream_, Level::Info, prefix_, std::forward<A>(args)...);
+    }
+
+    template <typename ... A>
+    void warning(A&& ...args)
+    {
+        print_line_ge(stream_, Level::Warning, prefix_, std::forward<A>(args)...);
+    }
+
+    template <typename ... A>
+    void error(A&& ...args)
+    {
+        print_line_ge(stream_, Level::Error, prefix_, std::forward<A>(args)...);
+    }
+
+    template <typename ... A>
+    void critical(A&& ...args)
+    {
+        print_line_ge(stream_, Level::Critical, prefix_, std::forward<A>(args)...);
+    }
+    
+    std::string prefix() const
+    {
+        return prefix_;
+    }
+    
+private:
+    std::string prefix_;
+    std::basic_ostream<char> &stream_;
+};
+
+}}
 
 #endif // _COR_TRACE_HPP_

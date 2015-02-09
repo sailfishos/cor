@@ -577,18 +577,35 @@ struct Operations
             copy_apply_if_changed(values, current, actions, selector.next());
     }
 
+    template <size_t N, typename ActionsT>
+    static void apply
+    (tuple_cref values, ActionsT const &actions
+     , TupleSelector<N, N> const &selector)
+    {
+        apply_(values, actions, selector);
+    }
+
+    template <size_t N, size_t P, typename ActionsT>
+    static void apply
+    (tuple_cref values, ActionsT const &actions
+     , TupleSelector<N, P> const &selector)
+    {
+        apply_(values, actions, selector);
+        apply(values, actions, selector.next());
+    }
+
 private:
 
     template <size_t S> struct Tag {};
 
     template <typename T1, typename T2, typename F>
-    static void execute(Tag<1> t, F const &fn, T1 const &v1, T2 const &v2)
+    static void execute(Tag<1>, F const &fn, T1 const &v1, T2 const &)
     {
         fn(v1);
     }
 
     template <typename T1, typename T2, typename F>
-    static void execute(Tag<2> t, F const &fn, T1 const &v1, T2 const &v2)
+    static void execute(Tag<2>, F const &fn, T1 const &v1, T2 const &v2)
     {
         fn(v1, v2);
     }
@@ -624,6 +641,16 @@ private:
         return 0;
     }
 
+    template <size_t N, size_t P, typename ActionsT>
+    static void apply_
+    (tuple_cref values, ActionsT const &actions
+     , TupleSelector<N, P> const &selector)
+    {
+        auto &v = selector.get(values);
+        auto fn = std::get<selector.pos>(actions);
+        fn(v);
+    }
+
 };
 
 template <typename ActionsT, typename ...Args>
@@ -644,6 +671,12 @@ size_t copy_apply_if_changed(std::tuple<Args...> &values
         copy_apply_if_changed<>(values, current, actions, selector(values));
 }
 
+template <typename ActionsT, typename ...Args>
+void apply(std::tuple<Args...> const &values, ActionsT const &actions)
+{
+    Operations<Args...>::template apply<>(values, actions, selector(values));
+}
+
 //// to be used as a substitute of real function in copy_apply_if_changed
 template <typename T> void dummy(T const &) {}
 
@@ -661,24 +694,24 @@ static inline std::string str(char const *v, char const *defval)
 }
 
 template <typename EnumT>
-constexpr size_t enum_size
-(typename std::enable_if<std::is_enum<EnumT>::value>::type* = 0) noexcept
-{
-    return static_cast<size_t>(EnumT::Last_) + 1;
-}
-
-template <typename EnumT>
 constexpr size_t enum_index
 (const EnumT e, typename std::enable_if<std::is_enum<EnumT>::value>::type* = 0)
 {
-    return static_cast<size_t>(e);
+    return static_cast<size_t>(e) - static_cast<size_t>(EnumT::First_);
+}
+
+template <typename EnumT>
+constexpr size_t enum_size
+(typename std::enable_if<std::is_enum<EnumT>::value>::type* = 0) noexcept
+{
+    return enum_index<EnumT>(EnumT::Last_) + 1;
 }
 
 template <typename EnumT>
 size_t is_end
 (EnumT e, typename std::enable_if<std::is_enum<EnumT>::value>::type* = 0) noexcept
 {
-    return enum_index(e) >= enum_size<EnumT>();
+    return enum_index<EnumT>(e) >= enum_size<EnumT>();
 }
 
 template <typename ...Args>
@@ -718,11 +751,12 @@ template <typename T> struct RecordTraits;
  * inside the specialization of RecordTraits
  *
  */
-template <typename FieldsT>
+template <typename FieldsT, typename... ElementsT>
 struct Record
 {
     typedef FieldsT id_type;
-    typedef typename RecordTraits<FieldsT>::type data_type;
+    typedef Record<FieldsT, ElementsT...> my_type;
+    typedef std::tuple<ElementsT...> data_type;
     static constexpr size_t size = static_cast<size_t>(FieldsT::Last_) + 1;
 
     static_assert(size == std::tuple_size<data_type>::value
@@ -731,8 +765,23 @@ struct Record
     Record(data_type const &src) : data(src) {}
     Record(data_type &&src) : data(std::move(src)) {}
 
-    template <typename ... Args>
-    Record(Args &&...args) : data(std::forward<Args>(args)...) {}
+    explicit
+    Record(ElementsT const&...args) : data(args...) {}
+
+    explicit
+    Record(ElementsT&&...args) : data(std::forward<ElementsT>(args)...) {}
+
+    Record(my_type const &src) : data(src.data) {}
+    Record(my_type &&src) : data(std::move(src.data)) {}
+
+    Record& operator = (my_type const &src)
+    {
+        data = src.data; return *this;
+    }
+    Record& operator = (my_type &&src)
+    {
+        data = std::move(src.data); return *this;
+    }
 
     template <FieldsT Id>
     typename std::tuple_element<static_cast<size_t>(Id), data_type>::type &get()
@@ -758,27 +807,47 @@ struct Record
         static_assert(value <= FieldsT::Last_, "Should be <= Last_");
     };
 
-private:
     data_type data;
 };
 
-#define RECORD_NAMES(Id, id_names__...)                             \
-    template <Id N> static MAYBE_CONSTEXPR char const * name()      \
-    {                                                               \
-        static_assert(cor::count(id_names__) == Record<Id>::size,   \
-                      "Check names count");                         \
-        return std::get<(size_t)N>(cor::make_array(id_names__));    \
+template <typename FieldsT, typename... ElementsT>
+bool operator == (Record<FieldsT, ElementsT...> const &v1
+                  , Record<FieldsT, ElementsT...> const &v2)
+{
+    return v1.data == v2.data;
+}
+
+template <typename FieldsT, typename... ElementsT>
+bool operator != (Record<FieldsT, ElementsT...> const &v1
+                  , Record<FieldsT, ElementsT...> const &v2)
+{
+    return v1.data != v2.data;
+}
+
+#define RECORD_FIELD_NAMES(Type, id_names__...)                             \
+    template <typename Type::id_type N>                                     \
+    static MAYBE_CONSTEXPR char const * name()                              \
+    {                                                                       \
+        static_assert(cor::count(id_names__) == Type::size,                 \
+                      "Check names count");                                 \
+        return std::get<(size_t)N>(cor::make_array(id_names__));            \
     }
+
+#define RECORD_TRAITS_FIELD_NAMES(Type, id_names__...)  \
+    template <> struct RecordTraits<Type> {             \
+        RECORD_FIELD_NAMES(Type, id_names__);           \
+    };
 
 template <size_t N>
 struct RecordDump
 {
-    template <typename StreamT, typename FieldsT>
-    static void out(StreamT &d, Record<FieldsT> const &v)
+    template <typename StreamT, typename FieldsT, typename... ElementsT>
+    static void out(StreamT &d, Record<FieldsT, ElementsT...> const &v)
     {
+        typedef Record<FieldsT, ElementsT...> rec_type;
         static constexpr auto end = (size_t)FieldsT::Last_;
-        static constexpr auto id = Record<FieldsT>::template Enum<end - N>::value;
-        static MAYBE_CONSTEXPR auto name = RecordTraits<FieldsT>::template name<id>();
+        static constexpr auto id = rec_type::template Enum<end - N>::value;
+        static MAYBE_CONSTEXPR auto name = RecordTraits<rec_type>::template name<id>();
         auto const &r = v.template get<id>();
         d << name << "=" << r << ", ";
         RecordDump<N - 1>::out(d, v);
@@ -788,20 +857,21 @@ struct RecordDump
 template <>
 struct RecordDump<0>
 {
-    template <typename StreamT, typename FieldsT>
-    static void out(StreamT &d, Record<FieldsT> const &v)
+    template <typename StreamT, typename FieldsT, typename... ElementsT>
+    static void out(StreamT &d, Record<FieldsT, ElementsT...> const &v)
     {
+        typedef Record<FieldsT, ElementsT...> rec_type;
         static auto constexpr end = static_cast<size_t>(FieldsT::Last_);
-        static auto constexpr id = Record<FieldsT>::template Enum<end>::value;
-        static auto MAYBE_CONSTEXPR *name(RecordTraits<FieldsT>::template name<id>());
+        static auto constexpr id = rec_type::template Enum<end>::value;
+        static auto MAYBE_CONSTEXPR *name(RecordTraits<rec_type>::template name<id>());
         auto const &r = v.template get<id>();
         d << name << "=" << r;
     }
 };
 
-template <typename T, typename FieldsT>
+template <typename T, typename FieldsT, typename... ElementsT>
 std::basic_ostream<T>& operator <<
-(std::basic_ostream<T> &dst, Record<FieldsT> const &v)
+(std::basic_ostream<T> &dst, Record<FieldsT, ElementsT...> const &v)
 {
     static constexpr auto index = static_cast<size_t>(FieldsT::Last_);
     dst << "("; RecordDump<index>::out(dst, v); dst << ")";

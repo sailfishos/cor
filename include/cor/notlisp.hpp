@@ -322,7 +322,7 @@ public:
 
     void on_list_end();
 
-    void on_comment(std::string &&s) { }
+    void on_comment(std::string &&) { }
 
     void on_string(std::string &&s) {
         stack.top().push_back(mk_string(s));
