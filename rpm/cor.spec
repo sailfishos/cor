@@ -5,8 +5,8 @@ Summary: Just another C++/C library
 Name: cor
 Version: 0.1.3
 Release: 1
-License: LGPL21
-Group: Development/Liraries
+License: LGPLv2.1
+Group: Development/Libraries
 URL: https://github.com/deztructor/cor
 Source0: %{name}-%{version}.tar.bz2
 BuildRequires: cmake >= 2.8
@@ -24,7 +24,6 @@ part of any other library :)
 
 %package devel
 Summary: cor headers etc.
-Group: System Environment/Libraries
 Requires: %{name} = %{version}-%{release}
 Requires: libudev-devel >= 187
 %description devel
@@ -33,7 +32,6 @@ cor library header files etc.
 %package tests
 Summary:    Tests for cor
 License:    LGPLv2.1
-Group:      System Environment/Libraries
 Requires:   %{name} = %{version}-%{release}
 %description tests
 %summary
