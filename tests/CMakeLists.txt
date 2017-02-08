@@ -1,7 +1,7 @@
 find_package(Threads)
 pkg_check_modules(TUT tut REQUIRED)
 
-INCLUDE_DIRECTORIES(${TUT_INCLUDES})
+INCLUDE_DIRECTORIES(${TUT_INCLUDE_DIRS})
 
 testrunner_project(cor)
 set(COR_TESTS error options util sexp notlisp mt os trace)
