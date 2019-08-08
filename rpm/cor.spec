@@ -2,12 +2,12 @@
 %{!?cmake_install: %define cmake_install make install DESTDIR=%{buildroot}}
 
 Summary: Just another C++/C library
-Name: cor
+Name:    cor
 Version: 0.1.3
 Release: 1
-License: LGPLv2.1
-Group: Development/Libraries
-URL: https://github.com/deztructor/cor
+License: LGPLv2+
+Group:   Development/Libraries
+URL:     https://git.sailfishos.org/mer-core/cor
 Source0: %{name}-%{version}.tar.bz2
 BuildRequires: cmake >= 2.8
 BuildRequires: pkgconfig(tut) >= 0.0.1
@@ -31,7 +31,6 @@ cor library header files etc.
 
 %package tests
 Summary:    Tests for cor
-License:    LGPLv2.1
 Requires:   %{name} = %{version}-%{release}
 %description tests
 %summary
@@ -47,9 +46,6 @@ make %{?jobs:-j%jobs}
 rm -rf $RPM_BUILD_ROOT
 %cmake_install
 
-%clean
-rm -rf $RPM_BUILD_ROOT
-
 %files
 %defattr(-,root,root,-)
 %{_libdir}/libcor.so
@@ -60,6 +56,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libcor-udev.so.0
 %{_libdir}/libcor-udev.so.%{version}
 %endif
+%license COPYING
 
 %files devel
 %defattr(-,root,root,-)
