@@ -17,6 +17,7 @@ BuildRequires: pkgconfig(udev) >= 187
 %endif
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
+ExcludeArch:   aarch64
 
 %description
 Just another C++/C library. Contains useful utilities which are not a
